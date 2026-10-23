@@ -102,6 +102,18 @@ describe("POST /api/access", () => {
     vi.mocked(prisma.vehicle.findUnique).mockResolvedValue(mockVehicle as never);
   });
 
+  it("un USER no puede registrar accesos", async () => {
+    const req = await tenantRequest(
+      "/api/access",
+      { role: "USER", sub: "user-1" },
+      { method: "POST", body: { plate: "AB1234", method: "PLATE", direction: "IN" } }
+    );
+    const res = await POST(req, params({}));
+    expect(res.status).toBe(403);
+    expect(prisma.vehicle.findUnique).not.toHaveBeenCalled();
+    expect(prisma.accessLog.create).not.toHaveBeenCalled();
+  });
+
   it("busca la patente dentro de la organización de la sesión", async () => {
     await post({ plate: "ab 1234", method: "PLATE", direction: "IN" });
     expect(prisma.vehicle.findUnique).toHaveBeenCalledWith({
