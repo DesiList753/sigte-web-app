@@ -1,6 +1,6 @@
 "use client";
-/* S.I.G.T.E — componentes compartidos del sistema de diseño */
 import type { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
 import { I } from "./Icon";
 import { ESTADO_LABEL, type Acceso, type Estado, type Lot } from "@/lib/design-data";
 
@@ -17,32 +17,83 @@ export function Badge({ kind, children }: { kind: Estado | "info"; children?: Re
   );
 }
 
-/*
- * Marca / lockup institucional.
- * Uso de imagen USM: el isotipo debe ser el oficial del kit-digital
- * (https://comunicaciones.usm.cl/kit-digital-usm/) y, por normativa de la
- * universidad, DEBE ir siempre acompañado del texto
- * "Universidad Técnica Federico Santa María". El archivo /escudo-usm.png debe
- * reemplazarse por el isotipo oficial manteniendo ese nombre.
- */
-export function Brand({ light }: { light?: boolean }) {
+export function ProductBrand({ light }: { light?: boolean }) {
   return (
-    <div className="brand" style={{ color: light ? "#fff" : "var(--usm-azul)" }}>
+    <div className="brand" style={{ color: light ? "#fff" : "var(--accent)" }}>
       <span
         className="crest"
-        style={{ background: "#fff", border: "none", padding: 3, opacity: 1, overflow: "hidden" }}
+        style={{
+          background: light ? "#fff" : "var(--accent)",
+          color: light ? "var(--accent)" : "#fff",
+          border: "none",
+          opacity: 1,
+        }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/escudo-usm.png"
-          alt="Isotipo Universidad Técnica Federico Santa María"
-          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-        />
+        <I name="barrier" size={22} stroke={2} />
       </span>
       <span className="sep" />
-      <div>
+      <div style={{ textAlign: "left" }}>
         <div className="sigla">S.I.G.T.E</div>
-        <div className="tag">Universidad Técnica Federico Santa María</div>
+        <div className="tag">Tránsito y estacionamiento</div>
+      </div>
+    </div>
+  );
+}
+
+function initialsOf(name: string) {
+  return name
+    .split(/\s+/)
+    .filter((word) => /^[\p{L}\d]/u.test(word))
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join("");
+}
+
+export function OrgBrand({
+  name,
+  legalName,
+  logoUrl,
+  light,
+}: {
+  name: string;
+  legalName?: string;
+  logoUrl: string | null;
+  light?: boolean;
+}) {
+  return (
+    <div className="brand" style={{ color: light ? "#fff" : "var(--accent)", minWidth: 0 }}>
+      <span
+        className="crest"
+        style={{
+          background: logoUrl || light ? "#fff" : "var(--accent)",
+          color: light ? "var(--accent)" : "#fff",
+          border: logoUrl && !light ? "1px solid var(--line)" : "none",
+          padding: logoUrl ? 3 : 0,
+          opacity: 1,
+          overflow: "hidden",
+          fontFamily: "var(--ff-display)",
+          fontSize: 15,
+          fontWeight: 700,
+          letterSpacing: ".02em",
+        }}
+      >
+        {logoUrl ? (
+          <Image
+            src={logoUrl}
+            alt=""
+            width={32}
+            height={32}
+            unoptimized
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          />
+        ) : (
+          initialsOf(name)
+        )}
+      </span>
+      <span className="sep" />
+      <div style={{ textAlign: "left", minWidth: 0 }}>
+        <div className="sigla org-name clamp">{name}</div>
+        <div className="tag clamp">{legalName && legalName !== name ? legalName : "S.I.G.T.E"}</div>
       </div>
     </div>
   );

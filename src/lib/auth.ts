@@ -1,23 +1,31 @@
-import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { NextRequest } from "next/server";
-import { prisma } from "./prisma";
-import { requireSecret } from "./env";
-import type { Role } from "@prisma/client";
+import { cache } from "react";
+import type { PlanFeature, Role } from "@prisma/client";
+import { COOKIE_NAME, verifyToken, type SessionPayload } from "./jwt";
+import { loadActor, type Actor } from "./actor";
+import type { PlanInfo } from "./plan";
 
-const SECRET = new TextEncoder().encode(
-  requireSecret("JWT_SECRET", "dev-only-secret-replace")
-);
-const ISSUER = process.env.JWT_ISSUER ?? "sigte.local";
-const AUDIENCE = process.env.JWT_AUDIENCE ?? "sigte.app";
-const COOKIE_NAME = "sigte_session";
+export type TenantRole = Exclude<Role, "SUPER_ADMIN">;
 
-export type SessionPayload = {
+export type OrganizationBrand = {
+  slug: string;
+  name: string;
+  displayName: string;
+  logoUrl: string | null;
+  brandColor: string | null;
+};
+
+export type TenantSession = {
   sub: string;
   email: string;
-  role: Role;
   name: string;
+  role: TenantRole;
+  organizationId: string;
+  organization: OrganizationBrand;
+  plan: PlanInfo;
 };
 
 export async function hashPassword(password: string) {
@@ -26,33 +34,6 @@ export async function hashPassword(password: string) {
 
 export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
-}
-
-export async function signToken(payload: SessionPayload): Promise<string> {
-  return new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setIssuer(ISSUER)
-    .setAudience(AUDIENCE)
-    .setExpirationTime("7d")
-    .sign(SECRET);
-}
-
-export async function verifyToken(token: string): Promise<SessionPayload | null> {
-  try {
-    const { payload } = await jwtVerify(token, SECRET, {
-      issuer: ISSUER,
-      audience: AUDIENCE,
-    });
-    return {
-      sub: payload.sub as string,
-      email: payload.email as string,
-      role: payload.role as Role,
-      name: payload.name as string,
-    };
-  } catch {
-    return null;
-  }
 }
 
 export async function setSessionCookie(token: string) {
@@ -96,25 +77,72 @@ export async function getSession(): Promise<SessionPayload | null> {
 export async function getSessionFromRequest(
   req: NextRequest
 ): Promise<SessionPayload | null> {
-  const bearer = req.headers.get("authorization");
-  if (bearer?.startsWith("Bearer ")) {
-    return verifyToken(bearer.slice(7));
-  }
   const token = req.cookies.get(COOKIE_NAME)?.value;
   if (!token) return null;
   return verifyToken(token);
 }
 
-export async function requireUser() {
-  const session = await getSession();
-  if (!session) throw new Error("UNAUTHORIZED");
-  const user = await prisma.user.findUnique({ where: { id: session.sub } });
-  if (!user || !user.active) throw new Error("UNAUTHORIZED");
-  return { session, user };
+export async function resolveActor(session: SessionPayload | null) {
+  if (!session) return null;
+  const actor = await loadActor(session.sub);
+  if (
+    !actor?.active ||
+    actor.role !== session.role ||
+    actor.organizationId !== session.organizationId
+  ) {
+    return null;
+  }
+  return actor;
 }
 
-export function hasRole(session: SessionPayload | null, ...roles: Role[]) {
-  return !!session && roles.includes(session.role);
+export function asTenant(actor: Actor): TenantSession | null {
+  const org = actor.organization;
+  if (actor.role === "SUPER_ADMIN" || !actor.organizationId || !org) return null;
+  return {
+    sub: actor.id,
+    email: actor.email,
+    name: actor.name,
+    role: actor.role,
+    organizationId: actor.organizationId,
+    organization: {
+      slug: org.slug,
+      name: org.name,
+      displayName: org.displayName,
+      logoUrl: org.logoUrl,
+      brandColor: org.brandColor,
+    },
+    plan: org.plan,
+  };
 }
 
-export { COOKIE_NAME };
+export function homePath(role: Role) {
+  if (role === "SUPER_ADMIN") return "/platform";
+  if (role === "ADMIN") return "/admin";
+  if (role === "GUARD") return "/guard";
+  return "/user";
+}
+
+export const getActor = cache(async () => resolveActor(await getSession()));
+
+export async function requirePlatformActor() {
+  const actor = await getActor();
+  if (!actor) redirect("/login");
+  if (actor.role !== "SUPER_ADMIN") redirect(homePath(actor.role));
+  return actor;
+}
+
+export async function requireTenantActor(roles: TenantRole[]) {
+  const actor = await getActor();
+  if (!actor) redirect("/login");
+  const tenant = asTenant(actor);
+  if (!tenant) redirect(homePath(actor.role));
+  if (actor.organization?.status !== "ACTIVE") redirect("/suspendida");
+  if (!roles.includes(tenant.role)) redirect(homePath(tenant.role));
+  return tenant;
+}
+
+export async function requireTenantFeature(roles: TenantRole[], feature: PlanFeature, fallback: string) {
+  const tenant = await requireTenantActor(roles);
+  if (!tenant.plan.features.includes(feature)) redirect(fallback);
+  return tenant;
+}

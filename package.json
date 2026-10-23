@@ -1,6 +1,6 @@
 {
   "name": "sigte-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "seed": "tsx prisma/seed.ts",
-    "db:push": "prisma db push",
+    "platform:admin": "tsx scripts/create-super-admin.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },

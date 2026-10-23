@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Card, Modal, Plate, Badge, LotGrid, Metric } from "@/components/ui-system";
 import { I } from "@/components/Icon";
 import { lotLevel, type Lot } from "@/lib/design-data";
+import { fetchWithSession } from "@/lib/session-fetch";
 
 type Block = {
   id: string;
@@ -35,7 +36,7 @@ type Vehicle = {
     name: string;
     email: string;
     role: string;
-    universityId: string | null;
+    credentialId: string | null;
   };
   currentBlock: { id: string; name: string } | null;
 };
@@ -51,9 +52,10 @@ export default function GuardLive() {
 
   async function loadAll() {
     const [p, v] = await Promise.all([
-      fetch("/api/parking").then((r) => r.json()),
-      fetch("/api/vehicles?inside=true").then((r) => r.json()),
+      fetchWithSession<{ blocks?: Block[]; totals?: Totals }>("/api/parking"),
+      fetchWithSession<{ vehicles?: Vehicle[] }>("/api/vehicles?inside=true"),
     ]);
+    if (!p || !v) return;
     setBlocks(p.blocks ?? []);
     setTotals(p.totals ?? null);
     setVehicles(v.vehicles ?? []);
@@ -77,7 +79,7 @@ export default function GuardLive() {
         (v) =>
           v.plate.includes(q) ||
           v.owner.name.toUpperCase().includes(q) ||
-          (v.owner.universityId ?? "").toUpperCase().includes(q) ||
+          (v.owner.credentialId ?? "").toUpperCase().includes(q) ||
           v.owner.email.toUpperCase().includes(q)
       );
     }
@@ -135,7 +137,7 @@ export default function GuardLive() {
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Estacionamiento en vivo</h1>
           <p className="muted" style={{ fontSize: 13 }}>
-            Vehículos dentro del campus, agrupados por bloque
+            Vehículos dentro, agrupados por bloque
           </p>
         </div>
         <Badge kind="info">
@@ -237,8 +239,8 @@ export default function GuardLive() {
                   </td>
                   <td>
                     <div style={{ fontWeight: 600 }}>{v.owner.name}</div>
-                    {v.owner.universityId && (
-                      <div className="mono muted" style={{ fontSize: 12 }}>{v.owner.universityId}</div>
+                    {v.owner.credentialId && (
+                      <div className="mono muted" style={{ fontSize: 12 }}>{v.owner.credentialId}</div>
                     )}
                   </td>
                   <td>
@@ -307,8 +309,8 @@ function VehicleDialog({
           <Badge kind="info">{vehicle.owner.role}</Badge>
         </div>
         <div className="row between" style={{ fontSize: 13, marginTop: 8 }}>
-          <span className="muted">Credencial U</span>
-          <span className="mono">{vehicle.owner.universityId ?? "—"}</span>
+          <span className="muted">Credencial</span>
+          <span className="mono">{vehicle.owner.credentialId ?? "—"}</span>
         </div>
         <div className="row between" style={{ fontSize: 13, marginTop: 6 }}>
           <span className="muted">Bloque actual</span>

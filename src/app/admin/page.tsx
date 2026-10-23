@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Metric, Card, LotGrid } from "@/components/ui-system";
-import { ChartsUSM } from "@/components/ChartsUSM";
+import { DashboardCharts } from "@/components/DashboardCharts";
+import { useFeature } from "@/components/PlanContext";
+import { PlanUsage, type Limits } from "@/components/PlanUsage";
 import { lotLevel, type Lot } from "@/lib/design-data";
+import { fetchWithSession } from "@/lib/session-fetch";
 
 type Dashboard = {
+  plan?: { name: string; limits: Limits };
   metrics: {
     totalUsers: number;
     totalGuards: number;
@@ -29,13 +33,14 @@ type Dashboard = {
 };
 
 export default function AdminDashboard() {
+  const reports = useFeature("REPORTS");
+  const infractions = useFeature("INFRACTIONS");
   const [data, setData] = useState<Dashboard | null>(null);
 
   useEffect(() => {
-    fetch("/api/dashboard").then((r) => r.json()).then(setData);
-    const interval = setInterval(() => {
-      fetch("/api/dashboard").then((r) => r.json()).then(setData);
-    }, 10_000);
+    const load = () => fetchWithSession<Dashboard>("/api/dashboard").then((d) => d && setData(d));
+    load();
+    const interval = setInterval(load, 10_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -86,12 +91,21 @@ export default function AdminDashboard() {
           value={m.currentInside.toLocaleString("es-CL")}
           sub={`${m.totalBlocks} bloques`}
         />
-        <Metric
-          label="Infracciones abiertas"
-          icon="shieldAlert"
-          value={m.openInfractions.toLocaleString("es-CL")}
-          sub="por resolver"
-        />
+        {infractions ? (
+          <Metric
+            label="Infracciones abiertas"
+            icon="shieldAlert"
+            value={m.openInfractions.toLocaleString("es-CL")}
+            sub="por resolver"
+          />
+        ) : (
+          <Metric
+            label="Promedio diario"
+            icon="chart"
+            value={m.avgDailyAccess.toLocaleString("es-CL")}
+            sub="accesos por día"
+          />
+        )}
         <Metric
           label="Tasa autorización"
           icon="shieldCheck"
@@ -100,16 +114,28 @@ export default function AdminDashboard() {
         />
       </div>
 
-      <Card title="Ocupación ahora">
-        <LotGrid cols={3} lots={lots} />
-      </Card>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, alignItems: "start" }}>
+        <Card title="Ocupación ahora" style={{ minWidth: 0 }}>
+          <LotGrid cols={3} lots={lots} />
+        </Card>
+        {data.plan && (
+          <Card title={`Plan ${data.plan.name}`} style={{ minWidth: 0 }}>
+            <PlanUsage limits={data.plan.limits} />
+            <p className="muted" style={{ fontSize: 12, marginTop: 14 }}>
+              El bloque por defecto no cuenta para el límite. Para ampliar tu plan, contacta a VanillaSoft.
+            </p>
+          </Card>
+        )}
+      </div>
 
-      <ChartsUSM
-        series={data.series}
-        occupancy={data.occupancy}
-        methodDist={data.methodDist}
-        topVehicles={data.topVehicles}
-      />
+      {reports && (
+        <DashboardCharts
+          series={data.series}
+          occupancy={data.occupancy}
+          methodDist={data.methodDist}
+          topVehicles={data.topVehicles}
+        />
+      )}
     </div>
   );
 }

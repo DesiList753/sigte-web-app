@@ -2,32 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================================
-   S.I.G.T.E — Sistema de diseño compartido
-   Sistema Inteligente de Gestión de Tránsito y Estacionamiento
-   Universidad Técnica Federico Santa María
-   ------------------------------------------------------------
-   Fuente de verdad de tokens y componentes para web, móvil y
-   tótem. Derivado del Manual de Normas Gráficas USM.
-   ============================================================ */
-
 :root{
-  /* ---- Paleta institucional USM ---- */
-  --usm-azul:#004B85;
-  --usm-azul-900:#002B4D;
-  --usm-azul-700:#003A66;
-  --usm-azul-100:#CBDDEC;
-  --usm-azul-050:#E8F0F6;
-  --usm-verde:#008452;
-  --usm-verde-700:#006B43;
-  --usm-verde-050:#E3F3EC;
-  --usm-rojo:#D60019;
-  --usm-rojo-700:#A8000F;
-  --usm-rojo-050:#FCE6E8;
-  --usm-amarillo:#F7AE00;
-  --usm-amarillo-700:#B57F00;
-  --usm-amarillo-050:#FEF4DD;
-  --usm-amarillo-ink:#3D2F00;
+  /* ---- Paleta base ---- */
+  --azul:#004B85;
+  --azul-900:#002B4D;
+  --azul-700:#003A66;
+  --azul-100:#CBDDEC;
+  --azul-050:#E8F0F6;
+  --verde:#008452;
+  --verde-700:#006B43;
+  --verde-050:#E3F3EC;
+  --rojo:#D60019;
+  --rojo-700:#A8000F;
+  --rojo-050:#FCE6E8;
+  --amarillo:#F7AE00;
+  --amarillo-700:#B57F00;
+  --amarillo-050:#FEF4DD;
+  --amarillo-ink:#3D2F00;
   --gris-marca:#9A999E;
 
   /* ---- Neutrales del sistema ---- */
@@ -42,16 +33,17 @@
   --bg:#F5F7F9;
 
   /* ---- Semánticos (rol funcional · semáforo de acceso) ---- */
-  --ok:var(--usm-verde);      --ok-700:var(--usm-verde-700);     --ok-050:var(--usm-verde-050);
-  --no:var(--usm-rojo);       --no-700:var(--usm-rojo-700);      --no-050:var(--usm-rojo-050);
-  --wait:var(--usm-amarillo); --wait-700:var(--usm-amarillo-700);--wait-050:var(--usm-amarillo-050);
+  --ok:var(--verde);      --ok-700:var(--verde-700);     --ok-050:var(--verde-050);
+  --no:var(--rojo);       --no-700:var(--rojo-700);      --no-050:var(--rojo-050);
+  --wait:var(--amarillo); --wait-700:var(--amarillo-700);--wait-050:var(--amarillo-050);
   --neutral:var(--ink-500);
 
   /* ---- Acento ---- */
-  --accent:var(--usm-azul);
-  --accent-700:var(--usm-azul-700);
-  --accent-100:var(--usm-azul-100);
-  --accent-050:var(--usm-azul-050);
+  --accent:var(--azul);
+  --accent-700:var(--azul-700);
+  --accent-900:var(--azul-900);
+  --accent-100:var(--azul-100);
+  --accent-050:var(--azul-050);
 
   /* ---- Radios ---- */
   --r-sm:6px; --r-md:10px; --r-lg:16px; --r-xl:24px; --r-full:999px;
@@ -85,8 +77,8 @@
   --surface:#0E2030;
   --surface-2:#0B1C2B;
   --bg:#06121C;
-  --usm-azul-050:#10293F;
-  --usm-azul-100:#1B3D58;
+  --azul-050:#10293F;
+  --azul-100:#1B3D58;
   --accent-050:#10293F;
   --accent-100:#1B3D58;
   --ok-050:#0C2A1E;
@@ -217,10 +209,10 @@ code,.mono{font-family:var(--ff-mono)}
 .card-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);margin-bottom:var(--sp-4)}
 .card-title{font-family:var(--ff-display);font-weight:700;font-size:17px;color:var(--ink-900)}
 
-.callout{border-left:4px solid var(--accent);background:var(--accent-050);padding:var(--sp-4) var(--sp-5);border-radius:0 var(--r-md) var(--r-md) 0}
-.callout.warn{border-color:var(--wait);background:var(--wait-050)}
-.callout.danger{border-color:var(--no);background:var(--no-050)}
-.callout.ok{border-color:var(--ok);background:var(--ok-050)}
+.callout{border:1px solid var(--accent-100);background:var(--accent-050);padding:var(--sp-4) var(--sp-5);border-radius:var(--r-md)}
+.callout.warn{border-color:color-mix(in srgb,var(--wait) 45%,var(--surface));background:var(--wait-050)}
+.callout.danger{border-color:color-mix(in srgb,var(--no) 35%,var(--surface));background:var(--no-050)}
+.callout.ok{border-color:color-mix(in srgb,var(--ok) 35%,var(--surface));background:var(--ok-050)}
 
 /* ============================================================
    MÉTRICAS
@@ -240,7 +232,7 @@ code,.mono{font-family:var(--ff-mono)}
 .lot .bc{font-size:24px;font-weight:700;margin-top:4px;font-family:var(--ff-mono);line-height:1}
 .lot .bp{font-size:11.5px;font-family:var(--ff-body);margin-top:3px;font-weight:500}
 .lot.low{background:var(--ok)}
-.lot.mid{background:var(--wait);color:var(--usm-amarillo-ink)}
+.lot.mid{background:var(--wait);color:var(--amarillo-ink)}
 .lot.high{background:var(--no)}
 .lot.full{background:var(--ink-700)}
 .dark .lot.full{background:#33424E}
@@ -275,13 +267,17 @@ code,.mono{font-family:var(--ff-mono)}
 .chip-role.funcionario{background:var(--accent-050);color:var(--accent-700)}
 
 /* ============================================================
-   MARCA — lockup S.I.G.T.E (slot para escudo oficial)
+   MARCA — logo y nombre
    ============================================================ */
 .brand{display:inline-flex;align-items:center;gap:12px}
 .brand .crest{width:38px;height:38px;border:1.5px dashed currentColor;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--ff-mono);font-size:7px;text-align:center;line-height:1.15;opacity:.7;flex:none}
 .brand .sep{width:1px;align-self:stretch;background:currentColor;opacity:.3}
 .brand .sigla{font-family:var(--ff-display);font-weight:700;letter-spacing:.07em;font-size:18px}
 .brand .tag{font-size:9.5px;font-family:var(--ff-mono);letter-spacing:.03em;opacity:.85;margin-top:1px}
+.brand .org-name{font-size:17px;letter-spacing:.01em;line-height:1.15}
+.brand .clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media (max-width:640px){.portal-brand .org-name{font-size:15px}.portal-brand .tag{-webkit-line-clamp:1}}
+.org-theme{--accent-900:color-mix(in srgb,var(--accent) 58%,#000);--accent-700:color-mix(in srgb,var(--accent) 82%,#000);--accent-100:color-mix(in srgb,var(--accent) 26%,var(--surface));--accent-050:color-mix(in srgb,var(--accent) 10%,var(--surface))}
 
 /* ============================================================
    UTILIDADES

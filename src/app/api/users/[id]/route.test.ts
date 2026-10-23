@@ -1,40 +1,49 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
-import { signToken } from "@/lib/auth";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    user: {
-      update: vi.fn().mockResolvedValue({ id: "target-1", role: "GUARD" }),
-      delete: vi.fn().mockResolvedValue({ id: "target-1" }),
-    },
-  },
-}));
+vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
+
+vi.mock("@/lib/prisma", async () => {
+  const { mockPrismaWithAudit } = await import("@/test/prisma");
+  return {
+    prisma: mockPrismaWithAudit({
+      user: {
+        findFirst: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue(null),
+        count: vi.fn().mockResolvedValue(1),
+        update: vi.fn().mockResolvedValue({ id: "target-1", role: "GUARD" }),
+        delete: vi.fn().mockResolvedValue({ id: "target-1" }),
+      },
+      infraction: { count: vi.fn().mockResolvedValue(0) },
+    }),
+  };
+});
 
 import { prisma } from "@/lib/prisma";
-import { PATCH, DELETE } from "./route";
+import { DELETE, PATCH } from "./route";
+import { ORG_A, ORG_B, auditedIn, onlyInOrg, params, tenantRequest } from "@/test/tenant";
 
-async function callPatch(role: "USER" | "GUARD" | "ADMIN", sub: string, body: Record<string, unknown>) {
-  const token = await signToken({ sub, email: "x@usm.cl", role, name: "X" });
-  const req = new NextRequest("http://localhost/api/users/target-1", {
-    method: "PATCH",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-  });
-  return PATCH(req, { params: Promise.resolve({ id: "target-1" }) });
+const target = { id: "target-1", email: "target@test.cl", role: "USER", active: true, credentialId: null };
+
+async function callPatch(
+  role: "USER" | "GUARD" | "ADMIN",
+  sub: string,
+  body: Record<string, unknown>,
+  organizationId = ORG_A
+) {
+  const req = await tenantRequest("/api/users/target-1", { role, sub, organizationId }, { method: "PATCH", body });
+  return PATCH(req, params({ id: "target-1" }));
 }
 
-async function callDelete(sub: string, targetId: string) {
-  const token = await signToken({ sub, email: "x@usm.cl", role: "ADMIN", name: "X" });
-  const req = new NextRequest(`http://localhost/api/users/${targetId}`, {
-    method: "DELETE",
-    headers: { authorization: `Bearer ${token}` },
-  });
-  return DELETE(req, { params: Promise.resolve({ id: targetId }) });
+async function callDelete(sub: string, targetId: string, organizationId = ORG_A) {
+  const req = await tenantRequest(`/api/users/${targetId}`, { role: "ADMIN", sub, organizationId }, { method: "DELETE" });
+  return DELETE(req, params({ id: targetId }));
 }
 
 describe("PATCH /api/users/[id]", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.user.findFirst).mockImplementation(onlyInOrg(ORG_A, target));
+  });
 
   it("permite a un ADMIN cambiar el rol de otro usuario", async () => {
     const res = await callPatch("ADMIN", "admin-1", { role: "GUARD" });
@@ -44,6 +53,22 @@ describe("PATCH /api/users/[id]", () => {
       data: { role: "GUARD" },
       select: expect.any(Object),
     });
+    expect(prisma.auditLog.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          organizationId: ORG_A,
+          action: "ROLE_CHANGE",
+          entity: "USER",
+          entityId: "target-1",
+          detail: { email: "target@test.cl", from: "USER", to: "GUARD" },
+        }),
+      ],
+    });
+  });
+
+  it("no registra auditoría si el rol no cambia", async () => {
+    await callPatch("ADMIN", "admin-1", { role: "USER", name: "Otro nombre" });
+    expect(prisma.auditLog.createMany).not.toHaveBeenCalled();
   });
 
   it("rechaza a un GUARD (no es ADMIN)", async () => {
@@ -57,20 +82,97 @@ describe("PATCH /api/users/[id]", () => {
     expect(res.status).toBe(403);
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
+
+  it("un ADMIN de otra organización no puede editar al usuario", async () => {
+    const res = await callPatch("ADMIN", "admin-b", { role: "ADMIN" }, ORG_B);
+    expect(res.status).toBe(404);
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "target-1", organizationId: ORG_B } })
+    );
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("no permite dejar a la organización sin administradores activos", async () => {
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({ ...target, id: "target-1", role: "ADMIN" } as never);
+    vi.mocked(prisma.user.count).mockResolvedValueOnce(0);
+    const res = await callPatch("ADMIN", "target-1", { role: "USER" });
+    expect(res.status).toBe(409);
+    expect(prisma.user.count).toHaveBeenCalledWith({
+      where: { organizationId: ORG_A, role: "ADMIN", active: true, NOT: { id: "target-1" } },
+    });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("PATCH /api/users/[id] con límites del plan", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.user.findFirst).mockImplementation(onlyInOrg(ORG_A, target));
+  });
+
+  async function patchWithPlan(body: Record<string, unknown>, plan: Record<string, unknown>) {
+    const req = await tenantRequest(
+      "/api/users/target-1",
+      { role: "ADMIN", sub: "admin-1", plan },
+      { method: "PATCH", body }
+    );
+    return PATCH(req, params({ id: "target-1" }));
+  }
+
+  it("no convierte en guardia si el plan llegó al tope de guardias", async () => {
+    vi.mocked(prisma.user.count).mockResolvedValueOnce(2);
+    const res = await patchWithPlan({ role: "GUARD" }, { name: "Básico", maxGuards: 2 });
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("PLAN_LIMIT");
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("reactivar a alguien también respeta el tope de usuarios", async () => {
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({ ...target, active: false } as never);
+    vi.mocked(prisma.user.count).mockResolvedValueOnce(5);
+    const res = await patchWithPlan({ active: true }, { name: "Básico", maxUsers: 5 });
+    expect(res.status).toBe(403);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("pasar de usuario a admin no ocupa un cupo nuevo", async () => {
+    const res = await patchWithPlan({ role: "ADMIN" }, { name: "Básico", maxUsers: 1 });
+    expect(res.status).toBe(200);
+    expect(prisma.user.count).not.toHaveBeenCalled();
+  });
 });
 
 describe("DELETE /api/users/[id]", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.user.findFirst).mockImplementation(onlyInOrg(ORG_A, target));
+  });
 
   it("un ADMIN puede eliminar a otro usuario", async () => {
     const res = await callDelete("admin-1", "target-1");
     expect(res.status).toBe(200);
     expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "target-1" } });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "DELETE", "USER"));
   });
 
   it("un ADMIN no puede eliminarse a si mismo", async () => {
     const res = await callDelete("admin-1", "admin-1");
     expect(res.status).toBe(400);
+    expect(prisma.user.delete).not.toHaveBeenCalled();
+  });
+
+  it("un ADMIN de otra organización no puede eliminar al usuario", async () => {
+    const res = await callDelete("admin-b", "target-1", ORG_B);
+    expect(res.status).toBe(404);
+    expect(prisma.user.delete).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it("no elimina a quien registró infracciones y sugiere desactivarlo", async () => {
+    vi.mocked(prisma.infraction.count).mockResolvedValueOnce(3);
+    const res = await callDelete("admin-1", "target-1");
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toMatch(/desact/i);
     expect(prisma.user.delete).not.toHaveBeenCalled();
   });
 });

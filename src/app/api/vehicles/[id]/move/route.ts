@@ -1,34 +1,28 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson, withAuth } from "@/lib/api";
+import { jsonError, parseJson, withTenant } from "@/lib/api";
 
 const moveSchema = z.object({
   blockId: z.string().min(1),
 });
 
-/**
- * POST /api/vehicles/:id/move
- * Reasigna un vehículo a otro bloque SIN cambiar la cuenta general (entra + sale).
- * Solo funciona si el vehículo ya está dentro (currentBlockId != null).
- * Queda registrado como un AccessLog con method=MANUAL, direction=IN,
- * nota = "Reubicado al bloque X" para auditoría.
- */
-export const POST = withAuth<{ id: string }>(
+export const POST = withTenant<{ id: string }>(
   async (req, { session, params }) => {
     const parsed = await parseJson(req, moveSchema);
     if (!parsed.ok) return parsed.response;
+    const organizationId = session.organizationId;
 
-    const vehicle = await prisma.vehicle.findUnique({
-      where: { id: params.id },
-      include: { currentBlock: true, owner: true },
+    const vehicle = await prisma.vehicle.findFirst({
+      where: { id: params.id, organizationId },
+      include: { currentBlock: true },
     });
     if (!vehicle) return jsonError(404, "Vehículo no encontrado");
     if (!vehicle.currentBlockId)
       return jsonError(400, "El vehículo no está dentro del estacionamiento");
 
-    const target = await prisma.parkingBlock.findUnique({
-      where: { id: parsed.data.blockId },
+    const target = await prisma.parkingBlock.findFirst({
+      where: { id: parsed.data.blockId, organizationId },
     });
     if (!target) return jsonError(404, "Bloque destino no encontrado");
 
@@ -37,15 +31,14 @@ export const POST = withAuth<{ id: string }>(
 
     const from = vehicle.currentBlock?.name ?? "—";
 
-    // Actualiza ubicación
     await prisma.vehicle.update({
       where: { id: vehicle.id },
       data: { currentBlockId: target.id },
     });
 
-    // Log de auditoría — NO cambia la cuenta general, solo re-ubica
     await prisma.accessLog.create({
       data: {
+        organizationId,
         vehicleId: vehicle.id,
         userId: vehicle.ownerId,
         guardId: session.sub,

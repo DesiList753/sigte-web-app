@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { I } from "@/components/Icon";
-import { Brand, Card } from "@/components/ui-system";
+import { Card, ProductBrand } from "@/components/ui-system";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
     <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
       <Card style={{ width: "100%", maxWidth: 420 }}>
         <div style={{ display: "inline-flex", marginBottom: 20 }}>
-          <Brand />
+          <ProductBrand />
         </div>
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Recuperar contraseña</h1>
         <p style={{ color: "var(--ink-500)", fontSize: 13.5, marginBottom: 20 }}>
@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
                 className="input"
                 type="email"
                 required
-                placeholder="nombre.apellido@usm.cl"
+                placeholder="nombre@organizacion.cl"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoFocus

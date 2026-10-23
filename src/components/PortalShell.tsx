@@ -3,12 +3,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode } from "react";
 import { I } from "@/components/Icon";
-import { Brand } from "@/components/ui-system";
+import { OrgBrand } from "@/components/ui-system";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import type { OrganizationBrand } from "@/lib/auth";
+import { orgTheme } from "@/lib/theme";
 
 export interface PortalTab { href: string; label: string; icon: string; }
 
-export function PortalShell({ tabs, userName, children }: { tabs: PortalTab[]; userName: string; children: ReactNode }) {
+export function PortalShell({ tabs, userName, brand, children }: { tabs: PortalTab[]; userName: string; brand: OrganizationBrand; children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const ini = userName.split(/[\s.]/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -16,16 +18,17 @@ export function PortalShell({ tabs, userName, children }: { tabs: PortalTab[]; u
     await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/login");
   }
-  // Pestaña activa = la coincidencia más específica (evita que "Inicio" /user
-  // quede marcada en todas las subrutas del portal).
   const activeHref = tabs
     .filter((t) => pathname === t.href || pathname.startsWith(t.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+  const theme = orgTheme(brand.brandColor);
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+    <div className={theme.className} style={{ minHeight: "100vh", background: "var(--bg)", ...theme.style }}>
       <header style={{ background: "var(--surface)", borderBottom: "1px solid var(--line)", position: "sticky", top: 0, zIndex: 20 }}>
         <div style={{ maxWidth: 920, margin: "0 auto", padding: "0 24px", height: 60, display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/user" style={{ color: "var(--usm-azul)" }}><Brand /></Link>
+          <Link href="/user" className="portal-brand" style={{ minWidth: 0 }}>
+            <OrgBrand name={brand.displayName} legalName={brand.name} logoUrl={brand.logoUrl} />
+          </Link>
           <div style={{ flex: 1 }} />
           <ThemeToggle />
           <span className="avatar">{ini || "…"}</span>
@@ -35,7 +38,7 @@ export function PortalShell({ tabs, userName, children }: { tabs: PortalTab[]; u
           {tabs.map((t) => {
             const on = t.href === activeHref;
             return (
-              <Link key={t.href} href={t.href} style={{ display: "flex", alignItems: "center", gap: 7, padding: "11px 12px", fontSize: 13.5, fontWeight: on ? 600 : 500, color: on ? "var(--usm-azul)" : "var(--ink-500)", borderBottom: on ? "2px solid var(--usm-azul)" : "2px solid transparent" }}>
+              <Link key={t.href} href={t.href} style={{ display: "flex", alignItems: "center", gap: 7, padding: "11px 12px", flex: "none", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: on ? 600 : 500, color: on ? "var(--accent)" : "var(--ink-500)", borderBottom: on ? "2px solid var(--accent)" : "2px solid transparent" }}>
                 <I name={t.icon} size={17} /> {t.label}
               </Link>
             );

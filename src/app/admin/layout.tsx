@@ -1,29 +1,30 @@
-import { PanelShell, type PanelNavGroup } from "@/components/PanelShell";
+import type { PlanFeature } from "@prisma/client";
+import { PanelShell, type PanelNavItem } from "@/components/PanelShell";
+import { PlanProvider } from "@/components/PlanContext";
 import { Toaster } from "@/components/ui/sonner";
-import { getSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireTenantActor } from "@/lib/auth";
 
-const groups: PanelNavGroup[] = [
-  { grp: "Administración", items: [
-    { href: "/admin", label: "Panel", icon: "dashboard" },
-    { href: "/admin/users", label: "Usuarios", icon: "users" },
-    { href: "/admin/vehicles", label: "Vehículos", icon: "car" },
-    { href: "/admin/parking", label: "Bloques", icon: "parking" },
-    { href: "/admin/access", label: "Accesos", icon: "history" },
-    { href: "/admin/infractions", label: "Infracciones", icon: "shieldAlert" },
-  ] },
+const items: (PanelNavItem & { feature?: PlanFeature })[] = [
+  { href: "/admin", label: "Panel", icon: "dashboard" },
+  { href: "/admin/users", label: "Usuarios", icon: "users" },
+  { href: "/admin/vehicles", label: "Vehículos", icon: "car" },
+  { href: "/admin/parking", label: "Bloques", icon: "parking" },
+  { href: "/admin/access", label: "Accesos", icon: "history" },
+  { href: "/admin/infractions", label: "Infracciones", icon: "shieldAlert", feature: "INFRACTIONS" },
+  { href: "/admin/audit", label: "Auditoría", icon: "list" },
+  { href: "/admin/configuracion", label: "Configuración", icon: "sliders" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
-  if (session.role !== "ADMIN") redirect("/");
+  const session = await requireTenantActor(["ADMIN"]);
+  const features = session.plan.features;
+  const groups = [{ grp: "Administración", items: items.filter((it) => !it.feature || features.includes(it.feature)) }];
   return (
-    <>
-      <PanelShell groups={groups} title="Administración" subtitle="Vista de mando" userName={session.name} userRole="Administración">
+    <PlanProvider features={features}>
+      <PanelShell groups={groups} title="Administración" subtitle="Vista de mando" brand={session.organization} userName={session.name} userRole="Administración">
         {children}
       </PanelShell>
       <Toaster richColors position="top-right" />
-    </>
+    </PlanProvider>
   );
 }

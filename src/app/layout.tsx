@@ -9,9 +9,8 @@ const robotoCondensed = Roboto_Condensed({ weight: ["400", "500", "700"], subset
 const robotoMono = Roboto_Mono({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-roboto-mono" });
 
 export const metadata: Metadata = {
-  title: "S.I.G.T.E · UTFSM",
-  description:
-    "Sistema Inteligente de Gestión de Tránsito y Estacionamiento · Universidad Técnica Federico Santa María",
+  title: "S.I.G.T.E",
+  description: "Sistema Inteligente de Gestión de Tránsito y Estacionamiento",
 };
 
 export const viewport: Viewport = {

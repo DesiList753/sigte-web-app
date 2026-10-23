@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { I } from "@/components/Icon";
-import { Brand, Card } from "@/components/ui-system";
+import { Card, ProductBrand } from "@/components/ui-system";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
     <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
       <Card style={{ width: "100%", maxWidth: 420 }}>
         <div style={{ display: "inline-flex", marginBottom: 20 }}>
-          <Brand />
+          <ProductBrand />
         </div>
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Nueva contraseña</h1>
         <p style={{ color: "var(--ink-500)", fontSize: 13.5, marginBottom: 20 }}>

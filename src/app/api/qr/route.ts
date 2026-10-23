@@ -1,21 +1,17 @@
 import { NextResponse } from "next/server";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
-import { jsonError, withAuth } from "@/lib/api";
+import { jsonError, withTenant } from "@/lib/api";
 import { signQrToken } from "@/lib/qr";
 
-/**
- * GET /api/qr?vehicleId=xxx
- * Genera un QR de acceso (válido 5 minutos) con payload
- *   sigte:v1:<vehicleId>:<timestamp>
- * Devuelve data URL + token + expiresAt.
- */
-export const GET = withAuth(async (req, { session }) => {
+export const GET = withTenant(async (req, { session }) => {
   const url = new URL(req.url);
   const vehicleId = url.searchParams.get("vehicleId");
   if (!vehicleId) return jsonError(400, "vehicleId requerido");
 
-  const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: vehicleId, organizationId: session.organizationId },
+  });
   if (!vehicle) return jsonError(404, "Vehículo no encontrado");
 
   if (session.role === "USER" && vehicle.ownerId !== session.sub)
@@ -37,4 +33,4 @@ export const GET = withAuth(async (req, { session }) => {
     issuedAt,
     expiresAt,
   });
-});
+}, { feature: "QR" });

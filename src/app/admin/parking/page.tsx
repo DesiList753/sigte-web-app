@@ -30,7 +30,7 @@ type Vehicle = {
     name: string;
     email: string;
     role: string;
-    universityId: string | null;
+    credentialId: string | null;
   };
   currentBlock: { id: string; name: string } | null;
 };
@@ -178,7 +178,7 @@ export default function AdminParking() {
       (v) =>
         v.plate.includes(q) ||
         v.owner.name.toUpperCase().includes(q) ||
-        (v.owner.universityId ?? "").toUpperCase().includes(q) ||
+        (v.owner.credentialId ?? "").toUpperCase().includes(q) ||
         v.owner.email.toUpperCase().includes(q)
     );
   }, [blockVehicles, vehicleSearch]);
@@ -463,8 +463,8 @@ function VehicleCard({
           <div style={{ fontWeight: 600, fontSize: 13 }}>{vehicle.owner.name}</div>
           <div className="muted" style={{ fontSize: 12 }}>{vehicle.owner.email}</div>
         </div>
-        {vehicle.owner.universityId && (
-          <span className="mono muted" style={{ fontSize: 12 }}>{vehicle.owner.universityId}</span>
+        {vehicle.owner.credentialId && (
+          <span className="mono muted" style={{ fontSize: 12 }}>{vehicle.owner.credentialId}</span>
         )}
       </div>
 
@@ -541,9 +541,9 @@ function VehicleDetailDialog({
         <InfoRow label="Nombre" value={<span style={{ fontWeight: 600 }}>{vehicle.owner.name}</span>} />
         <InfoRow label="Email" value={<span className="muted">{vehicle.owner.email}</span>} />
         <InfoRow
-          label="Credencial U"
-          value={vehicle.owner.universityId
-            ? <span className="mono">{vehicle.owner.universityId}</span>
+          label="Credencial"
+          value={vehicle.owner.credentialId
+            ? <span className="mono">{vehicle.owner.credentialId}</span>
             : <span className="muted">—</span>}
         />
         <InfoRow label="Rol" value={<Badge kind="info">{vehicle.owner.role}</Badge>} />

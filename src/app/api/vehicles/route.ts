@@ -1,27 +1,19 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson, withAuth } from "@/lib/api";
 import type { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
+import { auditData } from "@/lib/audit";
+import { limitBlock } from "@/lib/plan";
 
-/**
- * GET /api/vehicles
- *  - Query params:
- *    - q: texto libre, matchea patente OR nombre/email del dueño
- *    - plate: legacy, matchea patente
- *    - inside: "true" → solo los que están actualmente dentro (currentBlockId != null)
- *    - blockId: filtrar por bloque actual (incluye "default")
- *  - USER: siempre restringido a sus propios vehículos
- *  - GUARD/ADMIN: acceso total
- */
-export const GET = withAuth(async (req, { session }) => {
+export const GET = withTenant(async (req, { session }) => {
   const url = new URL(req.url);
   const q = url.searchParams.get("q")?.trim();
   const plate = url.searchParams.get("plate")?.toUpperCase().trim();
   const inside = url.searchParams.get("inside") === "true";
   const blockId = url.searchParams.get("blockId");
 
-  const where: Prisma.VehicleWhereInput = {};
+  const where: Prisma.VehicleWhereInput = { organizationId: session.organizationId };
   if (session.role === "USER") where.ownerId = session.sub;
 
   if (q) {
@@ -43,7 +35,7 @@ export const GET = withAuth(async (req, { session }) => {
     where,
     orderBy: { createdAt: "desc" },
     include: {
-      owner: { select: { id: true, name: true, email: true, role: true, universityId: true } },
+      owner: { select: { id: true, name: true, email: true, role: true, credentialId: true } },
       currentBlock: true,
     },
   });
@@ -59,26 +51,55 @@ const createSchema = z.object({
   authorized: z.boolean().optional(),
 });
 
-export const POST = withAuth(async (req, { session }) => {
+export const POST = withTenant(async (req, { session }) => {
   const parsed = await parseJson(req, createSchema);
   if (!parsed.ok) return parsed.response;
   const data = parsed.data;
+  const organizationId = session.organizationId;
 
-  const ownerId = session.role === "ADMIN" && data.ownerId ? data.ownerId : session.sub;
+  let ownerId = session.sub;
+  if (session.role === "ADMIN" && data.ownerId) {
+    const owner = await prisma.user.findFirst({
+      where: { id: data.ownerId, organizationId },
+      select: { id: true },
+    });
+    if (!owner) return jsonError(404, "Dueño no encontrado");
+    ownerId = owner.id;
+  }
+
   const plate = data.plate.toUpperCase().replace(/\s+/g, "");
-  const existing = await prisma.vehicle.findUnique({ where: { plate } });
+  const existing = await prisma.vehicle.findUnique({
+    where: { organizationId_plate: { organizationId, plate } },
+  });
   if (existing) return jsonError(409, "Patente ya registrada");
 
-  const vehicle = await prisma.vehicle.create({
-    data: {
-      plate,
-      make: data.make,
-      model: data.model,
-      color: data.color,
-      authorized: data.authorized ?? true,
-      ownerId,
-    },
-    include: { owner: { select: { id: true, name: true, email: true } } },
+  const limited = await limitBlock(organizationId, session.plan, "vehicles");
+  if (limited) return planError(limited);
+
+  const vehicle = await prisma.$transaction(async (tx) => {
+    const created = await tx.vehicle.create({
+      data: {
+        organizationId,
+        plate,
+        make: data.make,
+        model: data.model,
+        color: data.color,
+        authorized: session.role === "USER" ? undefined : data.authorized,
+        ownerId,
+      },
+      include: { owner: { select: { id: true, name: true, email: true } } },
+    });
+    await tx.auditLog.create({
+      data: auditData({
+        organizationId,
+        actor: session,
+        action: "CREATE",
+        entity: "VEHICLE",
+        entityId: created.id,
+        detail: { plate },
+      }),
+    });
+    return created;
   });
   return NextResponse.json({ vehicle }, { status: 201 });
 });

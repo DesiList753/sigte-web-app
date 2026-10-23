@@ -1,43 +1,51 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
-import { signToken } from "@/lib/auth";
 
-const openInfraction = { id: "inf-1", userId: "user-1", status: "OPEN" };
+vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    infraction: {
-      findUnique: vi.fn(),
-      update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "inf-1", ...data })),
-    },
-  },
-}));
+vi.mock("@/lib/prisma", async () => {
+  const { mockPrismaWithAudit } = await import("@/test/prisma");
+  return {
+    prisma: mockPrismaWithAudit({
+      infraction: {
+        findFirst: vi.fn(),
+        update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "inf-1", ...data })),
+      },
+    }),
+  };
+});
 
 import { prisma } from "@/lib/prisma";
 import { PATCH } from "./route";
+import { ORG_A, ORG_B, auditedIn, onlyInOrg, params, tenantRequest } from "@/test/tenant";
+
+const openInfraction = {
+  id: "inf-1",
+  userId: "user-1",
+  status: "OPEN",
+  organizationId: ORG_A,
+  vehicle: { plate: "AB1234" },
+};
 
 async function callPatch(
   role: "USER" | "GUARD" | "ADMIN",
   sub: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  organizationId = ORG_A
 ) {
-  const token = await signToken({ sub, email: "x@usm.cl", role, name: "X" });
-  const req = new NextRequest("http://localhost/api/infractions/inf-1", {
-    method: "PATCH",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-  });
-  return PATCH(req, { params: Promise.resolve({ id: "inf-1" }) });
+  const req = await tenantRequest("/api/infractions/inf-1", { role, sub, organizationId }, { method: "PATCH", body });
+  return PATCH(req, params({ id: "inf-1" }));
 }
 
 describe("PATCH /api/infractions/[id]", () => {
   beforeEach(() => {
-    vi.mocked(prisma.infraction.findUnique).mockResolvedValue(openInfraction as never);
+    vi.clearAllMocks();
+    vi.mocked(prisma.infraction.findFirst).mockImplementation(onlyInOrg(ORG_A, openInfraction));
   });
 
   it("permite al dueño reconocer su propia infracción abierta", async () => {
     const res = await callPatch("USER", "user-1", { status: "ACKNOWLEDGED" });
     expect(res.status).toBe(200);
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 
   it("rechaza a un USER que no es el dueño de la infracción (IDOR)", async () => {
@@ -61,5 +69,16 @@ describe("PATCH /api/infractions/[id]", () => {
         resolution: "pagó la multa",
       }),
     });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "RESOLVE", "INFRACTION"));
+  });
+
+  it("un ADMIN de otra organización no puede tocar la infracción", async () => {
+    const res = await callPatch("ADMIN", "admin-b", { status: "DISMISSED" }, ORG_B);
+    expect(res.status).toBe(404);
+    expect(prisma.infraction.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "inf-1", organizationId: ORG_B } })
+    );
+    expect(prisma.infraction.update).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 });

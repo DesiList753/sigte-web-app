@@ -4,18 +4,10 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, Modal, Badge, Plate } from "@/components/ui-system";
 import { I } from "@/components/Icon";
-import { type Estado } from "@/lib/design-data";
+import { INFRACTION_TYPE_LABEL, type Estado } from "@/lib/design-data";
 import { formatDate } from "@/lib/utils";
 
-const TYPES = [
-  { k: "WRONG_BLOCK", l: "Estacionado en bloque equivocado" },
-  { k: "UNAUTHORIZED_ENTRY", l: "Ingreso no autorizado" },
-  { k: "DOUBLE_PARKING", l: "Doble fila" },
-  { k: "EXPIRED_PERMIT", l: "Permiso expirado" },
-  { k: "BLOCKING_ACCESS", l: "Bloqueando accesos" },
-  { k: "SPEEDING", l: "Exceso de velocidad" },
-  { k: "OTHER", l: "Otra" },
-];
+const TYPES = Object.entries(INFRACTION_TYPE_LABEL).map(([k, l]) => ({ k, l }));
 
 const STATUS: Record<string, { kind: Estado; label: string }> = {
   OPEN: { kind: "no", label: "Abierta" },
@@ -99,7 +91,7 @@ export default function GuardInfractions() {
                   <Plate size="sm">{i.vehicle.plate}</Plate>
                 </td>
                 <td>
-                  <span className="mono" style={{ fontSize: 12 }}>{i.type}</span>
+                  <span style={{ fontSize: 12 }}>{INFRACTION_TYPE_LABEL[i.type] ?? i.type}</span>
                 </td>
                 <td className="muted" style={{ maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {i.description}

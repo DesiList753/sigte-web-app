@@ -27,7 +27,7 @@ export default function GuardHistory() {
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Historial reciente</h1>
           <p className="muted" style={{ fontSize: 13 }}>
-            Últimos 100 accesos al campus
+            Últimos 100 accesos
           </p>
         </div>
       </div>

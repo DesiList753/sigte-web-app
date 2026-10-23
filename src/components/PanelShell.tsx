@@ -3,17 +3,17 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { I } from "@/components/Icon";
-import { Brand } from "@/components/ui-system";
+import { OrgBrand, ProductBrand } from "@/components/ui-system";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import type { OrganizationBrand } from "@/lib/auth";
+import { orgTheme } from "@/lib/theme";
 
 export interface PanelNavItem { href: string; label: string; icon: string; }
 export interface PanelNavGroup { grp: string; items: PanelNavItem[]; }
 
-function Sidebar({ groups, open, onClose }: { groups: PanelNavGroup[]; open: boolean; onClose: () => void }) {
+function Sidebar({ groups, brand, open, onClose }: { groups: PanelNavGroup[]; brand?: OrganizationBrand; open: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  // Ítem activo = el href más específico (más largo) que coincide con la ruta;
-  // evita que "/admin" (Dashboard) quede marcado en todas las subrutas.
   const activeHref = groups
     .flatMap((g) => g.items)
     .filter((it) => pathname === it.href || pathname.startsWith(it.href + "/"))
@@ -23,9 +23,13 @@ function Sidebar({ groups, open, onClose }: { groups: PanelNavGroup[]; open: boo
     router.replace("/login");
   }
   return (
-    <aside className={"panel-sidebar" + (open ? " open" : "")} style={{ width: 244, background: "var(--usm-azul-900)", color: "#fff", display: "flex", flexDirection: "column", flex: "none" }}>
+    <aside className={"panel-sidebar" + (open ? " open" : "")} style={{ width: 244, background: "var(--accent-900)", color: "#fff", display: "flex", flexDirection: "column", flex: "none" }}>
       <Link href="/" onClick={onClose} style={{ padding: "18px 18px 16px", borderBottom: "1px solid rgba(255,255,255,.1)", color: "inherit" }}>
-        <Brand light />
+        {brand ? (
+          <OrgBrand name={brand.displayName} legalName={brand.name} logoUrl={brand.logoUrl} light />
+        ) : (
+          <ProductBrand light />
+        )}
       </Link>
       <nav style={{ flex: 1, overflowY: "auto", padding: "14px 12px" }}>
         {groups.map((g) => (
@@ -34,7 +38,7 @@ function Sidebar({ groups, open, onClose }: { groups: PanelNavGroup[]; open: boo
             {g.items.map((it) => {
               const on = it.href === activeHref;
               return (
-                <Link key={it.href} href={it.href} onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 10px", marginBottom: 2, borderRadius: 8, background: on ? "var(--usm-azul)" : "transparent", color: on ? "#fff" : "rgba(255,255,255,.78)", fontFamily: "var(--ff-body)", fontSize: 13.5, fontWeight: on ? 600 : 400, boxShadow: on ? "inset 3px 0 0 var(--usm-amarillo)" : "none" }}>
+                <Link key={it.href} href={it.href} onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 10px", marginBottom: 2, borderRadius: 8, background: on ? "rgba(255,255,255,.14)" : "transparent", color: on ? "#fff" : "rgba(255,255,255,.78)", fontFamily: "var(--ff-body)", fontSize: 13.5, fontWeight: on ? 600 : 400 }}>
                   <I name={it.icon} size={18} stroke={1.9} />
                   <span style={{ flex: 1 }}>{it.label}</span>
                 </Link>
@@ -74,13 +78,14 @@ function TopBar({ title, subtitle, userName, userRole, onBurger }: { title: stri
   );
 }
 
-export function PanelShell({ groups, title, subtitle, userName, userRole, children }: {
-  groups: PanelNavGroup[]; title: string; subtitle: string; userName: string; userRole: string; children: ReactNode;
+export function PanelShell({ groups, title, subtitle, userName, userRole, brand, children }: {
+  groups: PanelNavGroup[]; title: string; subtitle: string; userName: string; userRole: string; brand?: OrganizationBrand; children: ReactNode;
 }) {
   const [navOpen, setNavOpen] = useState(false);
+  const theme = orgTheme(brand?.brandColor);
   return (
-    <div style={{ height: "100vh", display: "flex" }}>
-      <Sidebar groups={groups} open={navOpen} onClose={() => setNavOpen(false)} />
+    <div className={theme.className} style={{ height: "100vh", display: "flex", ...theme.style }}>
+      <Sidebar groups={groups} brand={brand} open={navOpen} onClose={() => setNavOpen(false)} />
       {navOpen && <div className="panel-overlay" onClick={() => setNavOpen(false)} />}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <TopBar title={title} subtitle={subtitle} userName={userName} userRole={userRole} onBurger={() => setNavOpen(true)} />

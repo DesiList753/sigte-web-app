@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson, withAuth } from "@/lib/api";
+import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { auditData } from "@/lib/audit";
 
 const updateSchema = z.object({
   make: z.string().optional(),
@@ -10,9 +11,10 @@ const updateSchema = z.object({
   authorized: z.boolean().optional(),
 });
 
-export const PATCH = withAuth<{ id: string }>(async (req, { session, params }) => {
-  const { id } = params;
-  const vehicle = await prisma.vehicle.findUnique({ where: { id } });
+export const PATCH = withTenant<{ id: string }>(async (req, { session, params }) => {
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: params.id, organizationId: session.organizationId },
+  });
   if (!vehicle) return jsonError(404, "Vehículo no encontrado");
 
   if (session.role === "USER" && vehicle.ownerId !== session.sub)
@@ -21,20 +23,37 @@ export const PATCH = withAuth<{ id: string }>(async (req, { session, params }) =
   const parsed = await parseJson(req, updateSchema);
   if (!parsed.ok) return parsed.response;
 
+  if (session.role === "USER" && parsed.data.authorized !== undefined)
+    return jsonError(403, "Solo un guardia o administrador puede cambiar la autorización");
+
   const updated = await prisma.vehicle.update({
-    where: { id },
+    where: { id: vehicle.id },
     data: parsed.data,
   });
   return NextResponse.json({ vehicle: updated });
 });
 
-export const DELETE = withAuth<{ id: string }>(async (_req, { session, params }) => {
-  const vehicle = await prisma.vehicle.findUnique({ where: { id: params.id } });
+export const DELETE = withTenant<{ id: string }>(async (_req, { session, params }) => {
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: params.id, organizationId: session.organizationId },
+  });
   if (!vehicle) return jsonError(404, "Vehículo no encontrado");
 
   if (session.role === "USER" && vehicle.ownerId !== session.sub)
     return jsonError(403, "No puedes eliminar este vehículo");
 
-  await prisma.vehicle.delete({ where: { id: params.id } });
+  await prisma.$transaction([
+    prisma.vehicle.delete({ where: { id: vehicle.id } }),
+    prisma.auditLog.create({
+      data: auditData({
+        organizationId: session.organizationId,
+        actor: session,
+        action: "DELETE",
+        entity: "VEHICLE",
+        entityId: vehicle.id,
+        detail: { plate: vehicle.plate },
+      }),
+    }),
+  ]);
   return NextResponse.json({ ok: true });
 });
