@@ -6,6 +6,7 @@ import { ChartsUSM } from "@/components/ChartsUSM";
 import { useFeature } from "@/components/PlanContext";
 import { PlanUsage, type Limits } from "@/components/PlanUsage";
 import { lotLevel, type Lot } from "@/lib/design-data";
+import { fetchWithSession } from "@/lib/session-fetch";
 
 type Dashboard = {
   plan?: { name: string; limits: Limits };
@@ -33,13 +34,13 @@ type Dashboard = {
 
 export default function AdminDashboard() {
   const reports = useFeature("REPORTS");
+  const infractions = useFeature("INFRACTIONS");
   const [data, setData] = useState<Dashboard | null>(null);
 
   useEffect(() => {
-    fetch("/api/dashboard").then((r) => r.json()).then(setData);
-    const interval = setInterval(() => {
-      fetch("/api/dashboard").then((r) => r.json()).then(setData);
-    }, 10_000);
+    const load = () => fetchWithSession<Dashboard>("/api/dashboard").then((d) => d && setData(d));
+    load();
+    const interval = setInterval(load, 10_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -90,12 +91,21 @@ export default function AdminDashboard() {
           value={m.currentInside.toLocaleString("es-CL")}
           sub={`${m.totalBlocks} bloques`}
         />
-        <Metric
-          label="Infracciones abiertas"
-          icon="shieldAlert"
-          value={m.openInfractions.toLocaleString("es-CL")}
-          sub="por resolver"
-        />
+        {infractions ? (
+          <Metric
+            label="Infracciones abiertas"
+            icon="shieldAlert"
+            value={m.openInfractions.toLocaleString("es-CL")}
+            sub="por resolver"
+          />
+        ) : (
+          <Metric
+            label="Promedio diario"
+            icon="chart"
+            value={m.avgDailyAccess.toLocaleString("es-CL")}
+            sub="accesos por día"
+          />
+        )}
         <Metric
           label="Tasa autorización"
           icon="shieldCheck"

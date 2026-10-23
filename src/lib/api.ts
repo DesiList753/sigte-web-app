@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ZodError, ZodSchema } from "zod";
+import type { ZodSchema } from "zod";
 import type { PlanFeature } from "@prisma/client";
 import {
   asTenant,
@@ -65,27 +65,23 @@ export function jsonError(status: number, message: string, extra?: unknown) {
   return NextResponse.json({ error: message, ...(extra as object) }, { status });
 }
 
-export async function parseJson<T>(
-  req: NextRequest,
-  schema: ZodSchema<T>
-): Promise<{ ok: true; data: T } | { ok: false; response: NextResponse }> {
+type Parsed<T> = { ok: true; data: T } | { ok: false; response: NextResponse };
+
+export function validate<T>(raw: unknown, schema: ZodSchema<T>): Parsed<T> {
+  const result = schema.safeParse(raw);
+  if (result.success) return { ok: true, data: result.data };
+  return {
+    ok: false,
+    response: NextResponse.json({ error: "Payload inválido", issues: result.error.issues }, { status: 400 }),
+  };
+}
+
+export async function parseJson<T>(req: NextRequest, schema: ZodSchema<T>): Promise<Parsed<T>> {
+  let raw: unknown;
   try {
-    const raw = await req.json();
-    const data = schema.parse(raw);
-    return { ok: true, data };
-  } catch (err) {
-    if (err instanceof ZodError) {
-      return {
-        ok: false,
-        response: NextResponse.json(
-          { error: "Payload inválido", issues: err.issues },
-          { status: 400 }
-        ),
-      };
-    }
-    return {
-      ok: false,
-      response: jsonError(400, "JSON mal formado"),
-    };
+    raw = await req.json();
+  } catch {
+    return { ok: false, response: jsonError(400, "JSON mal formado") };
   }
+  return validate(raw, schema);
 }

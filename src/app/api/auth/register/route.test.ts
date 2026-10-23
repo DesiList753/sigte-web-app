@@ -28,8 +28,17 @@ const ORG = {
   id: "org-a",
   status: "ACTIVE",
   selfRegistration: true,
+  registrationForm: "ACADEMIC",
   allowedEmailDomains: [] as string[],
   plan: { name: "Básico", features: ["QR"], maxUsers: null, maxGuards: null, maxBlocks: null, maxVehicles: null },
+};
+
+const basic = {
+  organizationSlug: "org-a-slug",
+  name: "Conductor Prueba",
+  email: "conductor@test.cl",
+  password: "segura123",
+  phone: "+56 9 3333 4444",
 };
 
 const student = {
@@ -119,5 +128,37 @@ describe("POST /api/auth/register", () => {
     expect(rejected.status).toBe(400);
     const accepted = await POST(request({ ...student, email: "alumna@sansano.usm.cl" }));
     expect(accepted.status).toBe(200);
+  });
+
+  it("con el formulario básico pide solo nombre, correo, teléfono y contraseña", async () => {
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, registrationForm: "BASIC" } as never);
+    const res = await POST(request(basic));
+    expect(res.status).toBe(200);
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ organizationId: "org-a", email: "conductor@test.cl", role: "USER" }),
+    });
+  });
+
+  it("con el formulario básico no guarda datos académicos aunque vengan en el envío", async () => {
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, registrationForm: "BASIC" } as never);
+    await POST(request({ ...student, organizationId: "org-b", universityId: "CRED-1" }));
+    const { data } = vi.mocked(prisma.user.create).mock.calls[0][0] as { data: Record<string, unknown> };
+    expect(data.organizationId).toBe("org-a");
+    expect(data).not.toHaveProperty("rut");
+    expect(data).not.toHaveProperty("career");
+    expect(data).not.toHaveProperty("universityId");
+    expect(prisma.user.findUnique).toHaveBeenCalledTimes(1);
+  });
+
+  it("con el formulario académico exige el tipo de usuario", async () => {
+    const res = await POST(request(basic));
+    expect(res.status).toBe(400);
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it("revisa el estado de la organización antes de validar el formulario", async () => {
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, status: "SUSPENDED" } as never);
+    const res = await POST(request({ organizationSlug: "org-a-slug" }));
+    expect(res.status).toBe(403);
   });
 });

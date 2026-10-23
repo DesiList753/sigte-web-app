@@ -9,18 +9,21 @@ import { LOCK_MS, isLocked, minutesRemaining, shouldLock } from "@/lib/loginPoli
 const schema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  organizationSlug: z.string().min(1).optional(),
 });
 
 export async function POST(req: NextRequest) {
   const parsed = await parseJson(req, schema);
   if (!parsed.ok) return parsed.response;
 
-  const { email, password } = parsed.data;
+  const { email, password, organizationSlug } = parsed.data;
   const user = await prisma.user.findUnique({
     where: { email: email.toLowerCase() },
-    include: { organization: { select: { status: true } } },
+    include: { organization: { select: { status: true, slug: true } } },
   });
-  if (!user || !user.active) return jsonError(401, "Credenciales inválidas");
+  if (!user || !user.active || (organizationSlug && user.organization?.slug !== organizationSlug)) {
+    return jsonError(401, "Credenciales inválidas");
+  }
 
   if (isLocked(user.lockedUntil)) {
     return jsonError(

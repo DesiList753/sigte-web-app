@@ -1,6 +1,7 @@
 "use client";
 /* S.I.G.T.E — componentes compartidos del sistema de diseño */
 import type { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
 import { I } from "./Icon";
 import { ESTADO_LABEL, type Acceso, type Estado, type Lot } from "@/lib/design-data";
 
@@ -43,6 +44,78 @@ export function Brand({ light }: { light?: boolean }) {
       <div>
         <div className="sigla">S.I.G.T.E</div>
         <div className="tag">Universidad Técnica Federico Santa María</div>
+      </div>
+    </div>
+  );
+}
+
+export function ProductBrand({ light }: { light?: boolean }) {
+  return (
+    <div className="brand" style={{ color: light ? "#fff" : "var(--accent)" }}>
+      <span
+        className="crest"
+        style={{
+          background: light ? "#fff" : "var(--accent)",
+          color: light ? "var(--accent)" : "#fff",
+          border: "none",
+          opacity: 1,
+        }}
+      >
+        <I name="barrier" size={22} stroke={2} />
+      </span>
+      <span className="sep" />
+      <div style={{ textAlign: "left" }}>
+        <div className="sigla">S.I.G.T.E</div>
+        <div className="tag">Tránsito y estacionamiento</div>
+      </div>
+    </div>
+  );
+}
+
+function initialsOf(name: string) {
+  return name
+    .split(/\s+/)
+    .filter((word) => /^[\p{L}\d]/u.test(word))
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join("");
+}
+
+export function OrgBrand({ name, logoUrl }: { name: string; logoUrl: string | null }) {
+  return (
+    <div className="brand" style={{ color: "var(--accent)" }}>
+      <span
+        className="crest"
+        style={{
+          background: logoUrl ? "#fff" : "var(--accent)",
+          color: "#fff",
+          border: logoUrl ? "1px solid var(--line)" : "none",
+          padding: logoUrl ? 3 : 0,
+          opacity: 1,
+          overflow: "hidden",
+          fontFamily: "var(--ff-display)",
+          fontSize: 15,
+          fontWeight: 700,
+          letterSpacing: ".02em",
+        }}
+      >
+        {logoUrl ? (
+          <Image
+            src={logoUrl}
+            alt=""
+            width={32}
+            height={32}
+            unoptimized
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          />
+        ) : (
+          initialsOf(name)
+        )}
+      </span>
+      <span className="sep" />
+      <div style={{ textAlign: "left" }}>
+        <div className="sigla" style={{ letterSpacing: ".01em", fontSize: 17, lineHeight: 1.15 }}>{name}</div>
+        <div className="tag">S.I.G.T.E</div>
       </div>
     </div>
   );

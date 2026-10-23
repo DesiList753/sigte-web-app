@@ -282,6 +282,7 @@ code,.mono{font-family:var(--ff-mono)}
 .brand .sep{width:1px;align-self:stretch;background:currentColor;opacity:.3}
 .brand .sigla{font-family:var(--ff-display);font-weight:700;letter-spacing:.07em;font-size:18px}
 .brand .tag{font-size:9.5px;font-family:var(--ff-mono);letter-spacing:.03em;opacity:.85;margin-top:1px}
+.org-theme{--accent-700:color-mix(in srgb,var(--accent) 82%,#000);--accent-100:color-mix(in srgb,var(--accent) 26%,var(--surface));--accent-050:color-mix(in srgb,var(--accent) 10%,var(--surface))}
 
 /* ============================================================
    UTILIDADES

@@ -1,25 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, homePath, setSessionCookie } from "@/lib/auth";
 import { signToken } from "@/lib/jwt";
-import { jsonError, parseJson, planError } from "@/lib/api";
+import { jsonError, parseJson, planError, validate } from "@/lib/api";
 import { auditData } from "@/lib/audit";
 import { limitBlock } from "@/lib/plan";
 import { formatRut, isValidRut } from "@/lib/rut";
 
+const targetSchema = z.looseObject({ organizationSlug: z.string().min(1) });
+
 const baseFields = {
-  organizationSlug: z.string().min(1),
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   phone: z.string().min(6, "Teléfono inválido"),
-  universityId: z.string().optional(),
 };
+
+const basicSchema = z.object(baseFields);
 
 const staffSchema = z.object({
   userType: z.literal("STAFF"),
   ...baseFields,
+  universityId: z.string().optional(),
   position: z.string().min(2),
   department: z.string().min(2),
 });
@@ -27,12 +31,35 @@ const staffSchema = z.object({
 const studentSchema = z.object({
   userType: z.literal("STUDENT"),
   ...baseFields,
+  universityId: z.string().optional(),
   rut: z.string().refine(isValidRut, "RUT inválido"),
   academicDepartment: z.string().min(2),
   career: z.string().min(2),
 });
 
-const schema = z.discriminatedUnion("userType", [staffSchema, studentSchema]);
+const academicSchema = z.discriminatedUnion("userType", [staffSchema, studentSchema]);
+
+type Registration = z.infer<typeof basicSchema> | z.infer<typeof academicSchema>;
+
+type Profile = Pick<
+  Prisma.UserUncheckedCreateInput,
+  "userType" | "universityId" | "rut" | "position" | "department" | "academicDepartment" | "career"
+>;
+
+function profileOf(data: Registration): Profile {
+  if (!("userType" in data)) return {};
+  const universityId = data.universityId || null;
+  if (data.userType === "STAFF") {
+    return { userType: "STAFF", universityId, position: data.position, department: data.department };
+  }
+  return {
+    userType: "STUDENT",
+    universityId,
+    rut: formatRut(data.rut),
+    academicDepartment: data.academicDepartment,
+    career: data.career,
+  };
+}
 
 function isAllowedEmail(email: string, domains: string[]) {
   if (domains.length === 0) return true;
@@ -41,18 +68,16 @@ function isAllowedEmail(email: string, domains: string[]) {
 }
 
 export async function POST(req: NextRequest) {
-  const parsed = await parseJson(req, schema);
-  if (!parsed.ok) return parsed.response;
-
-  const data = parsed.data;
-  const emailLower = data.email.toLowerCase();
+  const target = await parseJson(req, targetSchema);
+  if (!target.ok) return target.response;
 
   const org = await prisma.organization.findUnique({
-    where: { slug: data.organizationSlug },
+    where: { slug: target.data.organizationSlug },
     select: {
       id: true,
       status: true,
       selfRegistration: true,
+      registrationForm: true,
       allowedEmailDomains: true,
       plan: {
         select: { name: true, features: true, maxUsers: true, maxGuards: true, maxBlocks: true, maxVehicles: true },
@@ -63,6 +88,13 @@ export async function POST(req: NextRequest) {
   if (org.status !== "ACTIVE" || !org.selfRegistration) {
     return jsonError(403, "El registro no está disponible para esta organización");
   }
+
+  const form =
+    org.registrationForm === "ACADEMIC" ? validate(target.data, academicSchema) : validate(target.data, basicSchema);
+  if (!form.ok) return form.response;
+
+  const data = form.data;
+  const emailLower = data.email.toLowerCase();
   if (!isAllowedEmail(emailLower, org.allowedEmailDomains)) {
     return jsonError(400, `Usa un correo de ${org.allowedEmailDomains.join(", ")}`);
   }
@@ -70,17 +102,17 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.user.findUnique({ where: { email: emailLower } });
   if (existing) return jsonError(409, "El email ya está registrado");
 
-  if (data.universityId) {
+  const profile = profileOf(data);
+  if (profile.universityId) {
     const collision = await prisma.user.findUnique({
-      where: { organizationId_universityId: { organizationId: org.id, universityId: data.universityId } },
+      where: { organizationId_universityId: { organizationId: org.id, universityId: profile.universityId } },
     });
     if (collision) return jsonError(409, "La credencial universitaria ya existe");
   }
 
-  const rut = data.userType === "STUDENT" ? formatRut(data.rut) : null;
-  if (rut) {
+  if (profile.rut) {
     const rutCollision = await prisma.user.findUnique({
-      where: { organizationId_rut: { organizationId: org.id, rut } },
+      where: { organizationId_rut: { organizationId: org.id, rut: profile.rut } },
     });
     if (rutCollision) return jsonError(409, "El RUT ya está registrado");
   }
@@ -96,15 +128,9 @@ export async function POST(req: NextRequest) {
         email: emailLower,
         passwordHash,
         name: data.name,
-        universityId: data.universityId || null,
         role: "USER",
-        userType: data.userType,
         phone: data.phone,
-        position: data.userType === "STAFF" ? data.position : null,
-        department: data.userType === "STAFF" ? data.department : null,
-        rut,
-        academicDepartment: data.userType === "STUDENT" ? data.academicDepartment : null,
-        career: data.userType === "STUDENT" ? data.career : null,
+        ...profile,
       },
     });
     await tx.auditLog.create({

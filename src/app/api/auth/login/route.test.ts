@@ -16,11 +16,11 @@ import { hashPassword } from "@/lib/auth";
 import { verifyToken } from "@/lib/jwt";
 import { POST } from "./route";
 
-function request(email: string, password: string) {
+function request(email: string, password: string, extra: Record<string, unknown> = {}) {
   return new NextRequest("http://localhost/api/auth/login", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, ...extra }),
   });
 }
 
@@ -38,7 +38,7 @@ function user(overrides: Record<string, unknown> = {}) {
     failedLoginAttempts: 0,
     lockedUntil: null,
     organizationId: "org-a",
-    organization: { status: "ACTIVE" },
+    organization: { status: "ACTIVE", slug: "org-a-slug" },
     ...overrides,
   } as never;
 }
@@ -106,5 +106,29 @@ describe("POST /api/auth/login", () => {
     const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
     expect(res.status).toBe(200);
     expect((await res.json()).home).toBe("/platform");
+  });
+
+  it("entra por el enlace de su propia organización", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user());
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD, { organizationSlug: "org-a-slug" }));
+    expect(res.status).toBe(200);
+  });
+
+  it("no entra por el enlace de otra organización aunque la clave sea correcta", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user());
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD, { organizationSlug: "org-b-slug" }));
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe("Credenciales inválidas");
+    expect(body.token).toBeUndefined();
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("el SUPER_ADMIN no entra por el enlace de una organización", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(
+      user({ role: "SUPER_ADMIN", organizationId: null, organization: null })
+    );
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD, { organizationSlug: "org-a-slug" }));
+    expect(res.status).toBe(401);
   });
 });

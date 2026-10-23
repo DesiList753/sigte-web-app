@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Card, Modal, Plate, Badge, LotGrid, Metric } from "@/components/ui-system";
 import { I } from "@/components/Icon";
 import { lotLevel, type Lot } from "@/lib/design-data";
+import { fetchWithSession } from "@/lib/session-fetch";
 
 type Block = {
   id: string;
@@ -51,9 +52,10 @@ export default function GuardLive() {
 
   async function loadAll() {
     const [p, v] = await Promise.all([
-      fetch("/api/parking").then((r) => r.json()),
-      fetch("/api/vehicles?inside=true").then((r) => r.json()),
+      fetchWithSession<{ blocks?: Block[]; totals?: Totals }>("/api/parking"),
+      fetchWithSession<{ vehicles?: Vehicle[] }>("/api/vehicles?inside=true"),
     ]);
+    if (!p || !v) return;
     setBlocks(p.blocks ?? []);
     setTotals(p.totals ?? null);
     setVehicles(v.vehicles ?? []);
