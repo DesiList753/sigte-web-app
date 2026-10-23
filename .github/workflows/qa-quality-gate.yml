@@ -26,4 +26,4 @@ jobs:
         run: newman run qa-tests/api-tests.json --suppress-exit-code
 
       - name: Certificacion exitosa
-        run: echo "Quality Gate APROBADO: Suite conforme a estandares S.I.G.T.E."
+        run: echo 'Quality Gate APROBADO - Suite conforme a estandares SIGTE'
