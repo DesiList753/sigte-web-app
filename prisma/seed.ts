@@ -20,7 +20,7 @@ type UserDef = {
   password: string;
   name: string;
   role: Role;
-  universityId?: string;
+  credentialId?: string;
   userType?: UserType;
   phone?: string;
   position?: string;
@@ -66,6 +66,7 @@ type OrgDef = {
   brandColor: string | null;
   plan: string;
   registrationForm: RegistrationForm;
+  allowedEmailDomains: string[];
   defaultBlock: BlockDef;
   blocks: BlockDef[];
   users: UserDef[];
@@ -110,6 +111,7 @@ const USM: OrgDef = {
   brandColor: "#004B85",
   plan: "institucional",
   registrationForm: "ACADEMIC",
+  allowedEmailDomains: ["usm.cl"],
   defaultBlock: { name: "No definido", capacity: 200, description: DEFAULT_BLOCK_DESCRIPTION },
   blocks: [
     { name: "Estacionamiento 1", capacity: 63, description: "Inferior Sector A · 63 autos + 9 motos" },
@@ -119,22 +121,22 @@ const USM: OrgDef = {
     { name: "Estacionamiento 5", capacity: 50, description: "Superior (en tierra) · capacidad por definir" },
   ],
   users: [
-    { email: "admin@usm.cl", password: "admin123", name: "Alejandro Vera Espinoza", role: "ADMIN", universityId: "ADM-0001", phone: "+56 9 8000 0001" },
-    { email: "guardia@usm.cl", password: "guard123", name: "Carlos Guardia Soto", role: "GUARD", universityId: "GRD-0001", phone: "+56 9 8000 0002" },
-    { email: "guardia2@usm.cl", password: "guard123", name: "María Vigía Rojas", role: "GUARD", universityId: "GRD-0002", phone: "+56 9 8000 0003" },
-    { email: "pedro@usm.cl", password: "user123", name: "Pedro Fernández Araya", role: "USER", universityId: "FUN-0002", userType: "STAFF", phone: "+56 9 7111 2002", position: "Docente", department: INFO },
-    { email: "jose@usm.cl", password: "user123", name: "José Hidalgo Palacios", role: "USER", universityId: "FUN-0003", userType: "STAFF", phone: "+56 9 7111 2003", position: "Administrativo", department: "Bienestar Estudiantil" },
-    { email: "fernando@usm.cl", password: "user123", name: "Fernando Ortega Campos", role: "USER", universityId: "FUN-0013", userType: "STAFF", phone: "+56 9 7111 2013", position: "Jefe de Carrera", department: INFO },
-    { email: "user@usm.cl", password: "user123", name: "Juan Pablo González Astudillo", role: "USER", universityId: "USR-0001", userType: "STUDENT", phone: "+56 9 6222 3001", rut: "20.123.456-7", academicDepartment: INFO, career: "Ingeniería Civil Informática" },
-    { email: "nicolas@usm.cl", password: "user123", name: "Nicolás Sepúlveda Cabello", role: "USER", universityId: "USR-0004", userType: "STUDENT", phone: "+56 9 6222 3004", rut: "20.234.567-8", academicDepartment: INFO, career: "Ingeniería Civil Telemática" },
-    { email: "ismael@usm.cl", password: "user123", name: "Ismael Galindo Acuña", role: "USER", universityId: "USR-0005", userType: "STUDENT", phone: "+56 9 6222 3005", rut: "20.345.678-9", academicDepartment: "Depto. de Industrias", career: "Ingeniería Civil Industrial" },
-    { email: "andrea@usm.cl", password: "user123", name: "Andrea López Contreras", role: "USER", universityId: "USR-0006", userType: "STUDENT", phone: "+56 9 6222 3006", rut: "21.111.222-3", academicDepartment: "Depto. de Química", career: "Ingeniería Civil en Biotecnología" },
-    { email: "diego@usm.cl", password: "user123", name: "Diego Muñoz Reyes", role: "USER", universityId: "USR-0007", userType: "STUDENT", phone: "+56 9 6222 3007", rut: "21.222.333-4", academicDepartment: INFO, career: "Ingeniería en Ejecución en Informática" },
-    { email: "camila@usm.cl", password: "user123", name: "Camila Torres Vidal", role: "USER", universityId: "USR-0008", userType: "STUDENT", phone: "+56 9 6222 3008", rut: "21.333.444-5", academicDepartment: "Depto. de Matemática", career: "Ingeniería Civil Matemática" },
-    { email: "rodrigo@usm.cl", password: "user123", name: "Rodrigo Salinas Pino", role: "USER", universityId: "USR-0009", userType: "STUDENT", phone: "+56 9 6222 3009", rut: "21.444.555-6", academicDepartment: "Depto. de Obras Civiles", career: "Ingeniería Civil" },
-    { email: "valentina@usm.cl", password: "user123", name: "Valentina Rivas Moreno", role: "USER", universityId: "USR-0010", userType: "STUDENT", phone: "+56 9 6222 3010", rut: "22.555.666-7", academicDepartment: "Depto. de Electrónica", career: "Ingeniería Civil Electrónica" },
-    { email: "matias@usm.cl", password: "user123", name: "Matías Pérez Fuentes", role: "USER", universityId: "USR-0011", userType: "STUDENT", phone: "+56 9 6222 3011", rut: "22.666.777-8", academicDepartment: INFO, career: "Ingeniería Civil Informática" },
-    { email: "barbara@usm.cl", password: "user123", name: "Bárbara Castro Herrera", role: "USER", universityId: "USR-0012", userType: "STUDENT", phone: "+56 9 6222 3012", rut: "22.777.888-9", academicDepartment: "Depto. de Mecánica", career: "Ingeniería Civil Mecánica" },
+    { email: "admin@usm.cl", password: "admin123", name: "Alejandro Vera Espinoza", role: "ADMIN", credentialId: "ADM-0001", phone: "+56 9 8000 0001" },
+    { email: "guardia@usm.cl", password: "guard123", name: "Carlos Guardia Soto", role: "GUARD", credentialId: "GRD-0001", phone: "+56 9 8000 0002" },
+    { email: "guardia2@usm.cl", password: "guard123", name: "María Vigía Rojas", role: "GUARD", credentialId: "GRD-0002", phone: "+56 9 8000 0003" },
+    { email: "pedro@usm.cl", password: "user123", name: "Pedro Fernández Araya", role: "USER", credentialId: "FUN-0002", userType: "STAFF", phone: "+56 9 7111 2002", position: "Docente", department: INFO },
+    { email: "jose@usm.cl", password: "user123", name: "José Hidalgo Palacios", role: "USER", credentialId: "FUN-0003", userType: "STAFF", phone: "+56 9 7111 2003", position: "Administrativo", department: "Bienestar Estudiantil" },
+    { email: "fernando@usm.cl", password: "user123", name: "Fernando Ortega Campos", role: "USER", credentialId: "FUN-0013", userType: "STAFF", phone: "+56 9 7111 2013", position: "Jefe de Carrera", department: INFO },
+    { email: "user@usm.cl", password: "user123", name: "Juan Pablo González Astudillo", role: "USER", credentialId: "USR-0001", userType: "STUDENT", phone: "+56 9 6222 3001", rut: "20.123.456-7", academicDepartment: INFO, career: "Ingeniería Civil Informática" },
+    { email: "nicolas@usm.cl", password: "user123", name: "Nicolás Sepúlveda Cabello", role: "USER", credentialId: "USR-0004", userType: "STUDENT", phone: "+56 9 6222 3004", rut: "20.234.567-8", academicDepartment: INFO, career: "Ingeniería Civil Telemática" },
+    { email: "ismael@usm.cl", password: "user123", name: "Ismael Galindo Acuña", role: "USER", credentialId: "USR-0005", userType: "STUDENT", phone: "+56 9 6222 3005", rut: "20.345.678-9", academicDepartment: "Depto. de Industrias", career: "Ingeniería Civil Industrial" },
+    { email: "andrea@usm.cl", password: "user123", name: "Andrea López Contreras", role: "USER", credentialId: "USR-0006", userType: "STUDENT", phone: "+56 9 6222 3006", rut: "21.111.222-3", academicDepartment: "Depto. de Química", career: "Ingeniería Civil en Biotecnología" },
+    { email: "diego@usm.cl", password: "user123", name: "Diego Muñoz Reyes", role: "USER", credentialId: "USR-0007", userType: "STUDENT", phone: "+56 9 6222 3007", rut: "21.222.333-4", academicDepartment: INFO, career: "Ingeniería en Ejecución en Informática" },
+    { email: "camila@usm.cl", password: "user123", name: "Camila Torres Vidal", role: "USER", credentialId: "USR-0008", userType: "STUDENT", phone: "+56 9 6222 3008", rut: "21.333.444-5", academicDepartment: "Depto. de Matemática", career: "Ingeniería Civil Matemática" },
+    { email: "rodrigo@usm.cl", password: "user123", name: "Rodrigo Salinas Pino", role: "USER", credentialId: "USR-0009", userType: "STUDENT", phone: "+56 9 6222 3009", rut: "21.444.555-6", academicDepartment: "Depto. de Obras Civiles", career: "Ingeniería Civil" },
+    { email: "valentina@usm.cl", password: "user123", name: "Valentina Rivas Moreno", role: "USER", credentialId: "USR-0010", userType: "STUDENT", phone: "+56 9 6222 3010", rut: "22.555.666-7", academicDepartment: "Depto. de Electrónica", career: "Ingeniería Civil Electrónica" },
+    { email: "matias@usm.cl", password: "user123", name: "Matías Pérez Fuentes", role: "USER", credentialId: "USR-0011", userType: "STUDENT", phone: "+56 9 6222 3011", rut: "22.666.777-8", academicDepartment: INFO, career: "Ingeniería Civil Informática" },
+    { email: "barbara@usm.cl", password: "user123", name: "Bárbara Castro Herrera", role: "USER", credentialId: "USR-0012", userType: "STUDENT", phone: "+56 9 6222 3012", rut: "22.777.888-9", academicDepartment: "Depto. de Mecánica", career: "Ingeniería Civil Mecánica" },
   ],
   vehicles: [
     { plate: "AABB12", make: "Toyota", model: "Yaris", color: "Rojo", owner: "user@usm.cl", authorized: true, block: "Estacionamiento 3" },
@@ -179,35 +181,41 @@ const USM: OrgDef = {
   activityDays: 29,
 };
 
-const DEMO: OrgDef = {
-  id: "org_demo",
-  slug: "demo",
-  name: "Organización Demo",
-  displayName: "Demo",
-  logoUrl: null,
-  brandColor: "#0F766E",
+const VALPARAISO: OrgDef = {
+  id: "org_usm_valparaiso",
+  slug: "usm-valparaiso",
+  name: "Universidad Técnica Federico Santa María, Campus Casa Central Valparaíso",
+  displayName: "USM Campus Valparaíso",
+  logoUrl: "/escudo-usm.png",
+  brandColor: "#004B85",
   plan: "profesional",
-  registrationForm: "BASIC",
-  defaultBlock: { name: "No definido", capacity: 50, description: DEFAULT_BLOCK_DESCRIPTION },
+  registrationForm: "ACADEMIC",
+  allowedEmailDomains: ["usm.cl"],
+  defaultBlock: { name: "No definido", capacity: 80, description: DEFAULT_BLOCK_DESCRIPTION },
   blocks: [
-    { name: "Estacionamiento Norte", capacity: 30, description: "Acceso principal" },
-    { name: "Estacionamiento Sur", capacity: 20, description: "Acceso de servicio" },
+    { name: "Estacionamiento Principal", capacity: 40, description: "Acceso principal" },
+    { name: "Estacionamiento Visitas", capacity: 12, description: "Reservado para visitas" },
   ],
   users: [
-    { email: "admin@demo.test", password: "admin123", name: "Carolina Rojas Díaz", role: "ADMIN", phone: "+56 9 5000 0001" },
-    { email: "guardia@demo.test", password: "guard123", name: "Luis Pérez Ortiz", role: "GUARD", phone: "+56 9 5000 0002" },
-    { email: "usuario@demo.test", password: "user123", name: "Martina Soto Vega", role: "USER", phone: "+56 9 5000 0003" },
+    { email: "admin.valparaiso@usm.cl", password: "admin123", name: "Daniela Fuentes Morales", role: "ADMIN", credentialId: "ADM-1001", phone: "+56 9 5100 0001" },
+    { email: "guardia.valparaiso@usm.cl", password: "guard123", name: "Roberto Muñoz Silva", role: "GUARD", credentialId: "GRD-1001", phone: "+56 9 5100 0002" },
+    { email: "docente.valparaiso@usm.cl", password: "user123", name: "Gonzalo Tapia Reyes", role: "USER", credentialId: "FUN-1001", userType: "STAFF", phone: "+56 9 5100 0003", position: "Docente", department: "Depto. de Matemática" },
+    { email: "alumna.valparaiso@sansano.usm.cl", password: "user123", name: "Fernanda Díaz Castro", role: "USER", credentialId: "USR-1001", userType: "STUDENT", phone: "+56 9 5100 0004", rut: "21.456.788-1", academicDepartment: INFO, career: "Ingeniería Civil Informática" },
+    { email: "alumno.valparaiso@sansano.usm.cl", password: "user123", name: "Tomás Herrera Lagos", role: "USER", credentialId: "USR-1002", userType: "STUDENT", phone: "+56 9 5100 0005", rut: "20.987.651-5", academicDepartment: "Depto. de Electrónica", career: "Ingeniería Civil Electrónica" },
   ],
   vehicles: [
-    { plate: "KKLL22", make: "Toyota", model: "Corolla", color: "Gris", owner: "usuario@demo.test", authorized: true, block: "Estacionamiento Norte" },
-    { plate: "MMNN44", make: "Suzuki", model: "Swift", color: "Rojo", owner: "usuario@demo.test", authorized: true, block: null },
-    { plate: "PPQQ66", make: "Kia", model: "Soluto", color: "Blanco", owner: "admin@demo.test", authorized: true, block: "Estacionamiento Sur" },
+    { plate: "RRSS11", make: "Toyota", model: "Yaris", color: "Blanco", owner: "alumna.valparaiso@sansano.usm.cl", authorized: true, block: "Estacionamiento Principal" },
+    { plate: "TTUU22", make: "Hyundai", model: "Accent", color: "Gris", owner: "alumno.valparaiso@sansano.usm.cl", authorized: true, block: null },
+    { plate: "VVWW33", make: "Kia", model: "Rio", color: "Azul", owner: "docente.valparaiso@usm.cl", authorized: true, block: "Estacionamiento Principal" },
+    { plate: "XXYY44", make: "Chevrolet", model: "Spark", color: "Rojo", owner: "alumno.valparaiso@sansano.usm.cl", authorized: false, block: null },
   ],
   infractions: [
-    { plate: "MMNN44", guard: "guardia@demo.test", type: "DOUBLE_PARKING", description: "Vehículo en doble fila en el acceso principal", status: "OPEN", daysAgo: 1 },
+    { plate: "TTUU22", guard: "guardia.valparaiso@usm.cl", type: "DOUBLE_PARKING", description: "Vehículo en doble fila frente al acceso principal", status: "OPEN", daysAgo: 1 },
+    { plate: "XXYY44", guard: "guardia.valparaiso@usm.cl", type: "UNAUTHORIZED_ENTRY", description: "Intento de ingreso con un vehículo sin autorización", status: "RESOLVED", daysAgo: 3 },
   ],
   notifications: [
-    { email: "usuario@demo.test", title: "Bienvenido a S.I.G.T.E.", message: WELCOME_NEW, read: false, at: [2, 9, 0] },
+    { email: "alumna.valparaiso@sansano.usm.cl", title: "Bienvenido a S.I.G.T.E.", message: WELCOME, read: true, at: [10, 9, 0] },
+    { email: "alumno.valparaiso@sansano.usm.cl", title: "Bienvenido a S.I.G.T.E.", message: WELCOME_NEW, read: false, at: [2, 11, 30] },
   ],
   activityDays: 14,
 };
@@ -237,7 +245,7 @@ function profile(u: UserDef) {
   return {
     name: u.name,
     role: u.role,
-    universityId: u.universityId ?? null,
+    credentialId: u.credentialId ?? null,
     userType: u.userType ?? null,
     phone: u.phone ?? null,
     position: u.position ?? null,
@@ -279,6 +287,7 @@ async function seedOrganization(def: OrgDef, planIds: Record<string, string>) {
     status: "ACTIVE" as const,
     planId: planIds[def.plan],
     registrationForm: def.registrationForm,
+    allowedEmailDomains: def.allowedEmailDomains,
   };
   const org = await prisma.organization.upsert({
     where: { slug: def.slug },
@@ -429,7 +438,7 @@ async function main() {
   const planIds = await seedPlans();
   await seedSuperAdmin();
   await seedOrganization(USM, planIds);
-  await seedOrganization(DEMO, planIds);
+  await seedOrganization(VALPARAISO, planIds);
   console.log("Seed finalizado.");
 }
 

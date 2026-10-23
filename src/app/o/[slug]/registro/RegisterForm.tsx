@@ -14,7 +14,7 @@ const EMPTY = {
   email: "",
   password: "",
   phone: "",
-  universityId: "",
+  credentialId: "",
   position: "",
   department: "",
   rut: "",
@@ -68,13 +68,13 @@ export function RegisterForm({
       phone: form.phone,
     };
     if (!academic) return base;
-    const universityId = form.universityId || undefined;
+    const credentialId = form.credentialId || undefined;
     return userType === "STAFF"
-      ? { ...base, userType, universityId, position: form.position, department: form.department }
+      ? { ...base, userType, credentialId, position: form.position, department: form.department }
       : {
           ...base,
           userType,
-          universityId,
+          credentialId,
           rut: formatRut(form.rut),
           academicDepartment: form.academicDepartment,
           career: form.career,
@@ -235,15 +235,15 @@ export function RegisterForm({
 
         {academic && (
           <div className="field">
-            <label className="field-lbl" htmlFor="universityId">
+            <label className="field-lbl" htmlFor="credentialId">
               Credencial <span className="muted">(opcional)</span>
             </label>
             <input
-              id="universityId"
+              id="credentialId"
               className="input"
               placeholder="USR-2026-123"
-              value={form.universityId}
-              onChange={(e) => set("universityId", e.target.value)}
+              value={form.credentialId}
+              onChange={(e) => set("credentialId", e.target.value)}
             />
           </div>
         )}

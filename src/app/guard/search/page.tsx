@@ -17,7 +17,7 @@ type Vehicle = {
     name: string;
     email: string;
     role: string;
-    universityId: string | null;
+    credentialId: string | null;
   };
   currentBlock: { id: string; name: string } | null;
 };
@@ -73,7 +73,7 @@ function GuardSearchInner() {
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Buscar vehículos</h1>
         <p className="muted" style={{ fontSize: 13 }}>
-          Por patente, nombre del usuario, email o credencial universitaria
+          Por patente, nombre del usuario, email o credencial
         </p>
       </div>
 
@@ -113,7 +113,7 @@ function GuardSearchInner() {
       >
         <p className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
           {scope === "inside"
-            ? "Vehículos actualmente dentro del campus"
+            ? "Vehículos dentro en este momento"
             : "Cualquier patente del sistema"}
         </p>
         {results.length === 0 && !loading ? (
@@ -150,7 +150,7 @@ function GuardSearchInner() {
                         <div style={{ fontWeight: 600 }}>{v.owner.name}</div>
                         <div className="muted" style={{ fontSize: 12 }}>
                           {v.owner.email}
-                          {v.owner.universityId && ` · ${v.owner.universityId}`}
+                          {v.owner.credentialId && ` · ${v.owner.credentialId}`}
                         </div>
                       </div>
                     </div>
@@ -166,7 +166,7 @@ function GuardSearchInner() {
                       {v.currentBlock ? (
                         <Badge kind="info">{v.currentBlock.name}</Badge>
                       ) : (
-                        <span className="muted" style={{ fontSize: 11 }}>Fuera del campus</span>
+                        <span className="muted" style={{ fontSize: 11 }}>Fuera</span>
                       )}
                     </div>
                   </td>

@@ -7,12 +7,6 @@ import { LoginForm } from "@/components/LoginForm";
 import { ProductBrand } from "@/components/ui-system";
 import st from "./login.module.css";
 
-const DEMO = [
-  { role: "Admin", email: "admin@usm.cl", pw: "admin123" },
-  { role: "Guardia", email: "guardia@usm.cl", pw: "guard123" },
-  { role: "Usuario", email: "user@usm.cl", pw: "user123" },
-] as const;
-
 export default function LoginPage() {
   return (
     <main className={st.split}>
@@ -31,7 +25,7 @@ export default function LoginPage() {
           </div>
           <h1 style={{ fontSize: 26, marginBottom: 24 }}>Bienvenido a S.I.G.T.E</h1>
           <Suspense fallback={<p className="muted" style={{ fontSize: 13 }}>Cargando…</p>}>
-            <LoginForm registerHref="/register" demo={DEMO} />
+            <LoginForm registerHref="/register" />
           </Suspense>
         </div>
       </div>
@@ -51,7 +45,7 @@ export default function LoginPage() {
               fontFamily: "var(--ff-mono)",
               fontSize: 11,
               letterSpacing: ".18em",
-              color: "var(--usm-amarillo)",
+              color: "var(--amarillo)",
               marginBottom: 14,
             }}
           >

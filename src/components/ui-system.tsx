@@ -1,5 +1,4 @@
 "use client";
-/* S.I.G.T.E — componentes compartidos del sistema de diseño */
 import type { CSSProperties, ReactNode } from "react";
 import Image from "next/image";
 import { I } from "./Icon";
@@ -15,37 +14,6 @@ export function Badge({ kind, children }: { kind: Estado | "info"; children?: Re
       <span className="dot" />
       {children || ESTADO_LABEL[kind]}
     </span>
-  );
-}
-
-/*
- * Marca / lockup institucional.
- * Uso de imagen USM: el isotipo debe ser el oficial del kit-digital
- * (https://comunicaciones.usm.cl/kit-digital-usm/) y, por normativa de la
- * universidad, DEBE ir siempre acompañado del texto
- * "Universidad Técnica Federico Santa María". El archivo /escudo-usm.png debe
- * reemplazarse por el isotipo oficial manteniendo ese nombre.
- */
-export function Brand({ light }: { light?: boolean }) {
-  return (
-    <div className="brand" style={{ color: light ? "#fff" : "var(--usm-azul)" }}>
-      <span
-        className="crest"
-        style={{ background: "#fff", border: "none", padding: 3, opacity: 1, overflow: "hidden" }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/escudo-usm.png"
-          alt="Isotipo Universidad Técnica Federico Santa María"
-          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-        />
-      </span>
-      <span className="sep" />
-      <div>
-        <div className="sigla">S.I.G.T.E</div>
-        <div className="tag">Universidad Técnica Federico Santa María</div>
-      </div>
-    </div>
   );
 }
 
@@ -81,15 +49,25 @@ function initialsOf(name: string) {
     .join("");
 }
 
-export function OrgBrand({ name, logoUrl }: { name: string; logoUrl: string | null }) {
+export function OrgBrand({
+  name,
+  legalName,
+  logoUrl,
+  light,
+}: {
+  name: string;
+  legalName?: string;
+  logoUrl: string | null;
+  light?: boolean;
+}) {
   return (
-    <div className="brand" style={{ color: "var(--accent)" }}>
+    <div className="brand" style={{ color: light ? "#fff" : "var(--accent)", minWidth: 0 }}>
       <span
         className="crest"
         style={{
-          background: logoUrl ? "#fff" : "var(--accent)",
-          color: "#fff",
-          border: logoUrl ? "1px solid var(--line)" : "none",
+          background: logoUrl || light ? "#fff" : "var(--accent)",
+          color: light ? "var(--accent)" : "#fff",
+          border: logoUrl && !light ? "1px solid var(--line)" : "none",
           padding: logoUrl ? 3 : 0,
           opacity: 1,
           overflow: "hidden",
@@ -113,9 +91,9 @@ export function OrgBrand({ name, logoUrl }: { name: string; logoUrl: string | nu
         )}
       </span>
       <span className="sep" />
-      <div style={{ textAlign: "left" }}>
-        <div className="sigla" style={{ letterSpacing: ".01em", fontSize: 17, lineHeight: 1.15 }}>{name}</div>
-        <div className="tag">S.I.G.T.E</div>
+      <div style={{ textAlign: "left", minWidth: 0 }}>
+        <div className="sigla org-name clamp">{name}</div>
+        <div className="tag clamp">{legalName && legalName !== name ? legalName : "S.I.G.T.E"}</div>
       </div>
     </div>
   );

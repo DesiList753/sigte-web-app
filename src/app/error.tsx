@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Brand, Card } from "@/components/ui-system";
+import { Card, ProductBrand } from "@/components/ui-system";
 import { I } from "@/components/Icon";
 
 export default function ErrorPage({
@@ -14,7 +14,7 @@ export default function ErrorPage({
     <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
       <Card style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
         <div style={{ display: "inline-flex", marginBottom: 20 }}>
-          <Brand />
+          <ProductBrand />
         </div>
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Algo salió mal</h1>
         <p style={{ color: "var(--ink-500)", fontSize: 13.5, marginBottom: 20 }}>

@@ -22,7 +22,7 @@ import { prisma } from "@/lib/prisma";
 import { DELETE, PATCH } from "./route";
 import { ORG_A, ORG_B, auditedIn, onlyInOrg, params, tenantRequest } from "@/test/tenant";
 
-const target = { id: "target-1", email: "target@test.cl", role: "USER", active: true, universityId: null };
+const target = { id: "target-1", email: "target@test.cl", role: "USER", active: true, credentialId: null };
 
 async function callPatch(
   role: "USER" | "GUARD" | "ADMIN",

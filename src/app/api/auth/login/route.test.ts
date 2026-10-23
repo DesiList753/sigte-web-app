@@ -11,10 +11,15 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import { verifyToken } from "@/lib/jwt";
+import { COOKIE_NAME, verifyToken } from "@/lib/jwt";
 import { POST } from "./route";
+
+async function cookieSet() {
+  return vi.mocked((await cookies()).set);
+}
 
 function request(email: string, password: string, extra: Record<string, unknown> = {}) {
   return new NextRequest("http://localhost/api/auth/login", {
@@ -84,19 +89,22 @@ describe("POST /api/auth/login", () => {
     });
   });
 
-  it("incluye la organización del usuario en el token", async () => {
+  it("guarda la sesión con la organización solo en la cookie", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(user());
     const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
     const body = await res.json();
     expect(body.home).toBe("/user");
-    expect((await verifyToken(body.token))?.organizationId).toBe("org-a");
+    expect(body.token).toBeUndefined();
+    const [name, token] = (await cookieSet()).mock.calls[0];
+    expect(name).toBe(COOKIE_NAME);
+    expect((await verifyToken(token as string))?.organizationId).toBe("org-a");
   });
 
   it("rechaza el login si la organización está suspendida", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ organization: { status: "SUSPENDED" } }));
     const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
     expect(res.status).toBe(403);
-    expect((await res.json()).token).toBeUndefined();
+    expect(await cookieSet()).not.toHaveBeenCalled();
   });
 
   it("permite al SUPER_ADMIN entrar sin organización", async () => {
@@ -120,7 +128,7 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toBe("Credenciales inválidas");
-    expect(body.token).toBeUndefined();
+    expect(await cookieSet()).not.toHaveBeenCalled();
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 

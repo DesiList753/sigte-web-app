@@ -74,11 +74,11 @@ describe("POST /api/users", () => {
 
   it("revisa la credencial repetida solo dentro de la organización", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null).mockResolvedValueOnce({ id: "otro" } as never);
-    const req = await tenantRequest("/api/users", { role: "ADMIN" }, { method: "POST", body: { ...newUser, universityId: "C-1" } });
+    const req = await tenantRequest("/api/users", { role: "ADMIN" }, { method: "POST", body: { ...newUser, credentialId: "C-1" } });
     const res = await POST(req, params({}));
     expect(res.status).toBe(409);
     expect(prisma.user.findUnique).toHaveBeenLastCalledWith({
-      where: { organizationId_universityId: { organizationId: ORG_A, universityId: "C-1" } },
+      where: { organizationId_credentialId: { organizationId: ORG_A, credentialId: "C-1" } },
     });
     expect(prisma.user.create).not.toHaveBeenCalled();
   });

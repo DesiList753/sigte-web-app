@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Metric, Card, LotGrid } from "@/components/ui-system";
-import { ChartsUSM } from "@/components/ChartsUSM";
+import { DashboardCharts } from "@/components/DashboardCharts";
 import { useFeature } from "@/components/PlanContext";
 import { PlanUsage, type Limits } from "@/components/PlanUsage";
 import { lotLevel, type Lot } from "@/lib/design-data";
@@ -129,7 +129,7 @@ export default function AdminDashboard() {
       </div>
 
       {reports && (
-        <ChartsUSM
+        <DashboardCharts
           series={data.series}
           occupancy={data.occupancy}
           methodDist={data.methodDist}

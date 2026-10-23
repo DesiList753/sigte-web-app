@@ -44,7 +44,7 @@ export default function AdminAccess() {
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Historial de accesos</h1>
           <p className="muted" style={{ fontSize: 13 }}>
-            Trazabilidad completa de ingresos y salidas al campus
+            Registro completo de entradas y salidas
           </p>
         </div>
         {reports && (

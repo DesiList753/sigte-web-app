@@ -1,7 +1,7 @@
 .split { display: grid; grid-template-columns: 1fr 1fr; height: 100vh; }
 .formSide { display: flex; align-items: center; justify-content: center; padding: 40px; background: var(--surface); }
 .formInner { width: 100%; max-width: 360px; text-align: center; }
-.aside { background: linear-gradient(160deg, var(--usm-azul-900), var(--usm-azul) 65%, #0a5a99); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.aside { background: linear-gradient(160deg, var(--accent-900), var(--accent) 65%, #0a5a99); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 @media (max-width: 820px) {
   .split { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
   .aside { display: none; }

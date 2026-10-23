@@ -3,7 +3,6 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, withTenant } from "@/lib/api";
-import { sendPushToUser } from "@/lib/push";
 
 export const GET = withTenant(async (_req, { session }) => {
   const where: Prisma.InfractionWhereInput = { organizationId: session.organizationId };
@@ -70,12 +69,6 @@ export const POST = withTenant(
     await prisma.notification.create({
       data: { organizationId, userId: vehicle.ownerId, title, message },
     });
-
-    sendPushToUser(vehicle.ownerId, {
-      title,
-      body: message,
-      data: { kind: "infraction", plate: vehicle.plate, type: body.type },
-    }).catch(() => {});
 
     return NextResponse.json({ infraction }, { status: 201 });
   },

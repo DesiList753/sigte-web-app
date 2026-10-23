@@ -11,6 +11,9 @@ describe("formatDetail", () => {
       "Correo: a@b.cl · Antes: Usuario · Ahora: Guardia"
     );
     expect(formatDetail({ fields: ["displayName", "brandColor"] })).toBe("Campos: nombre visible, color");
+    expect(formatDetail({ name: "Básico", fields: ["maxGuards", "features"] })).toBe(
+      "Nombre: Básico · Campos: máximo de guardias, funciones"
+    );
   });
 
   it("devuelve vacío si no hay detalle", () => {

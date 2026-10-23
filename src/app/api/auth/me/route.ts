@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       email: true,
       name: true,
       role: true,
-      universityId: true,
+      credentialId: true,
       organization: { select: { id: true, slug: true, displayName: true, status: true } },
     },
   });

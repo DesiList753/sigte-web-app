@@ -63,7 +63,7 @@ describe("GET /api/access/lookup", () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
     await lookup("uid=USR-0001");
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
-      where: { organizationId_universityId: { organizationId: ORG_A, universityId: "USR-0001" } },
+      where: { organizationId_credentialId: { organizationId: ORG_A, credentialId: "USR-0001" } },
     });
   });
 

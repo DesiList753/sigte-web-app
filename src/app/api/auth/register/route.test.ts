@@ -123,10 +123,10 @@ describe("POST /api/auth/register", () => {
   });
 
   it("exige un correo de los dominios permitidos", async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, allowedEmailDomains: ["usm.cl"] } as never);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, allowedEmailDomains: ["organizacion.cl"] } as never);
     const rejected = await POST(request(student));
     expect(rejected.status).toBe(400);
-    const accepted = await POST(request({ ...student, email: "alumna@sansano.usm.cl" }));
+    const accepted = await POST(request({ ...student, email: "alumna@alumnos.organizacion.cl" }));
     expect(accepted.status).toBe(200);
   });
 
@@ -141,12 +141,12 @@ describe("POST /api/auth/register", () => {
 
   it("con el formulario básico no guarda datos académicos aunque vengan en el envío", async () => {
     vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, registrationForm: "BASIC" } as never);
-    await POST(request({ ...student, organizationId: "org-b", universityId: "CRED-1" }));
+    await POST(request({ ...student, organizationId: "org-b", credentialId: "CRED-1" }));
     const { data } = vi.mocked(prisma.user.create).mock.calls[0][0] as { data: Record<string, unknown> };
     expect(data.organizationId).toBe("org-a");
     expect(data).not.toHaveProperty("rut");
     expect(data).not.toHaveProperty("career");
-    expect(data).not.toHaveProperty("universityId");
+    expect(data).not.toHaveProperty("credentialId");
     expect(prisma.user.findUnique).toHaveBeenCalledTimes(1);
   });
 

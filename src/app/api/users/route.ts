@@ -17,7 +17,7 @@ export const GET = withTenant(
         { name: { contains: q, mode: "insensitive" } },
         { email: { contains: q.toLowerCase() } },
         { rut: { contains: q } },
-        { universityId: { contains: q } },
+        { credentialId: { contains: q } },
       ];
     }
 
@@ -37,7 +37,7 @@ export const GET = withTenant(
         department: true,
         academicDepartment: true,
         career: true,
-        universityId: true,
+        credentialId: true,
         active: true,
         createdAt: true,
         _count: { select: { vehicles: true } },
@@ -53,23 +53,23 @@ const createSchema = z.object({
   password: z.string().min(6),
   name: z.string().min(2),
   role: z.enum(["USER", "GUARD", "ADMIN"]),
-  universityId: z.string().optional(),
+  credentialId: z.string().optional(),
 });
 
 export const POST = withTenant(
   async (req, { session }) => {
     const parsed = await parseJson(req, createSchema);
     if (!parsed.ok) return parsed.response;
-    const { email, password, name, role, universityId } = parsed.data;
+    const { email, password, name, role, credentialId } = parsed.data;
     const emailLower = email.toLowerCase();
     const organizationId = session.organizationId;
 
     const exists = await prisma.user.findUnique({ where: { email: emailLower } });
     if (exists) return jsonError(409, "Email ya existe");
 
-    if (universityId) {
+    if (credentialId) {
       const collision = await prisma.user.findUnique({
-        where: { organizationId_universityId: { organizationId, universityId } },
+        where: { organizationId_credentialId: { organizationId, credentialId } },
       });
       if (collision) return jsonError(409, "La credencial ya existe en tu organización");
     }
@@ -80,8 +80,8 @@ export const POST = withTenant(
     const passwordHash = await hashPassword(password);
     const user = await prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
-        data: { organizationId, email: emailLower, passwordHash, name, role, universityId: universityId || null },
-        select: { id: true, email: true, name: true, role: true, universityId: true, active: true },
+        data: { organizationId, email: emailLower, passwordHash, name, role, credentialId: credentialId || null },
+        select: { id: true, email: true, name: true, role: true, credentialId: true, active: true },
       });
       await tx.auditLog.create({
         data: auditData({

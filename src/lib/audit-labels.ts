@@ -15,6 +15,7 @@ export const ENTITY_LABEL: Record<string, string> = {
   VEHICLE: "Vehículo",
   PARKING_BLOCK: "Bloque",
   INFRACTION: "Infracción",
+  PLAN: "Plan",
 };
 
 const DETAIL_LABEL: Record<string, string> = {
@@ -42,6 +43,11 @@ const FIELD_LABEL: Record<string, string> = {
   registrationForm: "formulario de registro",
   selfRegistration: "registro abierto",
   allowedEmailDomains: "dominios permitidos",
+  maxUsers: "máximo de usuarios",
+  maxGuards: "máximo de guardias",
+  maxBlocks: "máximo de bloques",
+  maxVehicles: "máximo de vehículos",
+  features: "funciones",
 };
 
 const VALUE_LABEL: Record<string, string> = {

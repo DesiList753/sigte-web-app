@@ -71,6 +71,5 @@ export async function POST(req: NextRequest) {
     role: user.role,
     organizationId: user.organizationId,
     home: homePath(user.role),
-    token,
   });
 }

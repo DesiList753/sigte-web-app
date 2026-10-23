@@ -35,7 +35,7 @@ export const GET = withTenant(async (req, { session }) => {
     where,
     orderBy: { createdAt: "desc" },
     include: {
-      owner: { select: { id: true, name: true, email: true, role: true, universityId: true } },
+      owner: { select: { id: true, name: true, email: true, role: true, credentialId: true } },
       currentBlock: true,
     },
   });

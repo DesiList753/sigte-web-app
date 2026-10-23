@@ -4,7 +4,6 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { featureBlock } from "@/lib/plan";
-import { sendPushToUser } from "@/lib/push";
 import { verifyQrToken } from "@/lib/qr";
 
 export const GET = withTenant(async (req, { session }) => {
@@ -57,7 +56,7 @@ const logSchema = z.object({
   plate: z.string().optional(),
   vehicleId: z.string().optional(),
   qrToken: z.string().optional(),
-  universityId: z.string().optional(),
+  credentialId: z.string().optional(),
   method: z.enum(["PLATE", "QR", "CARD", "MANUAL"]),
   direction: z.enum(["IN", "OUT"]),
   blockId: z.string().optional(),
@@ -86,9 +85,9 @@ export const POST = withTenant(
         return jsonError(400, verified.error === "expirado" ? "QR expirado (válido por 5 minutos)" : "QR inválido");
       }
       vehicle = await prisma.vehicle.findFirst({ where: { id: verified.vehicleId, organizationId } });
-    } else if (body.universityId) {
+    } else if (body.credentialId) {
       const owner = await prisma.user.findUnique({
-        where: { organizationId_universityId: { organizationId, universityId: body.universityId } },
+        where: { organizationId_credentialId: { organizationId, credentialId: body.credentialId } },
       });
       if (owner) {
         vehicle = await prisma.vehicle.findFirst({
@@ -151,18 +150,12 @@ export const POST = withTenant(
     const title = body.direction === "IN" ? "Ingreso registrado" : "Salida registrada";
     const message =
       body.direction === "IN"
-        ? `Vehículo ${vehicle.plate} ingresó al campus${log.block ? ` (${log.block.name})` : ""}.`
-        : `Vehículo ${vehicle.plate} salió del campus.`;
+        ? `Vehículo ${vehicle.plate} ingresó${log.block ? ` a ${log.block.name}` : ""}.`
+        : `Vehículo ${vehicle.plate} salió.`;
 
     await prisma.notification.create({
       data: { organizationId, userId: vehicle.ownerId, title, message },
     });
-
-    sendPushToUser(vehicle.ownerId, {
-      title,
-      body: message,
-      data: { kind: "access", direction: body.direction, plate: vehicle.plate },
-    }).catch(() => {});
 
     return NextResponse.json({ log, authorized: vehicle.authorized, warning }, { status: 201 });
   },

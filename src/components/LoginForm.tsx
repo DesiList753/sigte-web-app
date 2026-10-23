@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { I } from "@/components/Icon";
 
-type Demo = { role: string; email: string; pw: string };
-
 function safeNext(next: string | null) {
   return next && /^\/(?![/\\])/.test(next) ? next : null;
 }
@@ -14,11 +12,9 @@ function safeNext(next: string | null) {
 export function LoginForm({
   organizationSlug,
   registerHref,
-  demo = [],
 }: {
   organizationSlug?: string;
   registerHref: string | null;
-  demo?: readonly Demo[];
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -101,52 +97,6 @@ export function LoginForm({
           ¿Olvidaste tu contraseña?
         </Link>
       </p>
-
-      {demo.length > 0 && (
-        <div className="card pad-sm" style={{ marginTop: 4 }}>
-          <p
-            style={{
-              fontFamily: "var(--ff-mono)",
-              fontSize: 11,
-              letterSpacing: ".15em",
-              textTransform: "uppercase",
-              color: "var(--ink-500)",
-              margin: "0 0 8px",
-            }}
-          >
-            Credenciales demo
-          </p>
-          <div style={{ display: "grid", gap: 6 }}>
-            {demo.map((d) => (
-              <button
-                key={d.email}
-                type="button"
-                onClick={() => {
-                  setEmail(d.email);
-                  setPassword(d.pw);
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  border: "1px solid var(--line)",
-                  borderRadius: 8,
-                  background: "var(--surface)",
-                  padding: "8px 11px",
-                  cursor: "pointer",
-                  fontFamily: "var(--ff-body)",
-                  fontSize: 12.5,
-                  textAlign: "left",
-                }}
-              >
-                <span style={{ fontWeight: 600, color: "var(--ink-900)" }}>{d.role}</span>
-                <span style={{ fontFamily: "var(--ff-mono)", color: "var(--ink-500)" }}>{d.email}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </form>
   );
 }

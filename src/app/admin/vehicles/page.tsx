@@ -143,7 +143,7 @@ function AdminVehicles() {
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Vehículos</h1>
           <p className="muted" style={{ fontSize: 13 }}>
-            Registro completo del parque vehicular del campus
+            Registro completo de los vehículos de la organización
           </p>
         </div>
         <button className="btn primary" onClick={() => setShowNew(true)}>

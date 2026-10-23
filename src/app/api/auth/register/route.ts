@@ -23,7 +23,7 @@ const basicSchema = z.object(baseFields);
 const staffSchema = z.object({
   userType: z.literal("STAFF"),
   ...baseFields,
-  universityId: z.string().optional(),
+  credentialId: z.string().optional(),
   position: z.string().min(2),
   department: z.string().min(2),
 });
@@ -31,7 +31,7 @@ const staffSchema = z.object({
 const studentSchema = z.object({
   userType: z.literal("STUDENT"),
   ...baseFields,
-  universityId: z.string().optional(),
+  credentialId: z.string().optional(),
   rut: z.string().refine(isValidRut, "RUT inválido"),
   academicDepartment: z.string().min(2),
   career: z.string().min(2),
@@ -43,18 +43,18 @@ type Registration = z.infer<typeof basicSchema> | z.infer<typeof academicSchema>
 
 type Profile = Pick<
   Prisma.UserUncheckedCreateInput,
-  "userType" | "universityId" | "rut" | "position" | "department" | "academicDepartment" | "career"
+  "userType" | "credentialId" | "rut" | "position" | "department" | "academicDepartment" | "career"
 >;
 
 function profileOf(data: Registration): Profile {
   if (!("userType" in data)) return {};
-  const universityId = data.universityId || null;
+  const credentialId = data.credentialId || null;
   if (data.userType === "STAFF") {
-    return { userType: "STAFF", universityId, position: data.position, department: data.department };
+    return { userType: "STAFF", credentialId, position: data.position, department: data.department };
   }
   return {
     userType: "STUDENT",
-    universityId,
+    credentialId,
     rut: formatRut(data.rut),
     academicDepartment: data.academicDepartment,
     career: data.career,
@@ -103,11 +103,11 @@ export async function POST(req: NextRequest) {
   if (existing) return jsonError(409, "El email ya está registrado");
 
   const profile = profileOf(data);
-  if (profile.universityId) {
+  if (profile.credentialId) {
     const collision = await prisma.user.findUnique({
-      where: { organizationId_universityId: { organizationId: org.id, universityId: profile.universityId } },
+      where: { organizationId_credentialId: { organizationId: org.id, credentialId: profile.credentialId } },
     });
-    if (collision) return jsonError(409, "La credencial universitaria ya existe");
+    if (collision) return jsonError(409, "La credencial ya existe");
   }
 
   if (profile.rut) {
@@ -162,6 +162,5 @@ export async function POST(req: NextRequest) {
     role: user.role,
     organizationId: org.id,
     home: homePath(user.role),
-    token,
   });
 }

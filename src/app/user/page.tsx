@@ -22,7 +22,7 @@ export default function UserHome() {
     <div style={{ display: "grid", gap: 20 }}>
       <div>
         <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Bienvenido</h1>
-        <p className="muted" style={{ fontSize: 13 }}>Resumen de tu actividad en el campus</p>
+        <p className="muted" style={{ fontSize: 13 }}>Resumen de tu actividad</p>
       </div>
 
       {m && (
@@ -46,7 +46,7 @@ export default function UserHome() {
                   display: "grid",
                   placeItems: "center",
                   background: "var(--accent-050)",
-                  color: "var(--usm-azul)",
+                  color: "var(--accent)",
                 }}
               >
                 <I name="qr" size={20} />
@@ -72,7 +72,7 @@ export default function UserHome() {
                   display: "grid",
                   placeItems: "center",
                   background: "var(--accent-050)",
-                  color: "var(--usm-azul)",
+                  color: "var(--accent)",
                 }}
               >
                 <I name="car" size={20} />

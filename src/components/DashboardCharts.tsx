@@ -6,7 +6,7 @@ const AZUL = "#004B85", VERDE = "#008452", ROJO = "#D60019", AMARILLO = "#F7AE00
 const PIE = [AZUL, VERDE, AMARILLO, GRIS];
 const METODO: Record<string, string> = { PLATE: "Patente", QR: "QR", CARD: "Credencial", MANUAL: "Manual" };
 
-export function ChartsUSM({ series, occupancy, methodDist, topVehicles }: {
+export function DashboardCharts({ series, occupancy, methodDist, topVehicles }: {
   series: { date: string; in: number; out: number }[];
   occupancy: { name: string; capacity: number; occupied: number; percentage: number }[];
   methodDist: Record<string, number>;

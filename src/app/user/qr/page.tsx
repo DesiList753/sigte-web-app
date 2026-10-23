@@ -117,7 +117,7 @@ export default function UserQR() {
                       style={{
                         height: "100%",
                         width: Math.min(100, pct) + "%",
-                        background: "var(--usm-azul)",
+                        background: "var(--accent)",
                         borderRadius: 3,
                         transition: "width .5s linear",
                       }}

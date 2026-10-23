@@ -62,7 +62,7 @@ export default function UserVehicles() {
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Mis vehículos</h1>
           <p className="muted" style={{ fontSize: 13 }}>
-            Patentes autorizadas para ingreso al campus
+            Patentes autorizadas para ingresar
           </p>
         </div>
         <button className="btn primary" onClick={() => setOpen(true)}>

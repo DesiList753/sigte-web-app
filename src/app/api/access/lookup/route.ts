@@ -6,7 +6,7 @@ import { featureBlock } from "@/lib/plan";
 import { verifyQrToken } from "@/lib/qr";
 
 const include = {
-  owner: { select: { id: true, name: true, email: true, universityId: true } },
+  owner: { select: { id: true, name: true, email: true, credentialId: true } },
   currentBlock: true,
 } satisfies Prisma.VehicleInclude;
 
@@ -37,7 +37,7 @@ export const GET = withTenant(
       });
     } else if (uid) {
       const owner = await prisma.user.findUnique({
-        where: { organizationId_universityId: { organizationId, universityId: uid } },
+        where: { organizationId_credentialId: { organizationId, credentialId: uid } },
       });
       if (owner) {
         vehicle = await prisma.vehicle.findFirst({

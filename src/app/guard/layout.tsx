@@ -18,7 +18,7 @@ export default async function GuardLayout({ children }: { children: React.ReactN
   const groups = [{ grp: "Operación", items: items.filter((it) => !it.feature || features.includes(it.feature)) }];
   return (
     <PlanProvider features={features}>
-      <PanelShell groups={groups} title="Guardia" subtitle="Operación de pórtico" userName={session.name} userRole="Guardia">
+      <PanelShell groups={groups} title="Guardia" subtitle="Operación de pórtico" brand={session.organization} userName={session.name} userRole="Guardia">
         {children}
       </PanelShell>
       <Toaster richColors position="top-right" />

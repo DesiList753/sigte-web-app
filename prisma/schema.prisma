@@ -105,7 +105,7 @@ model User {
   passwordHash        String
   name                String
   role                Role          @default(USER)
-  universityId        String?
+  credentialId        String?
   active              Boolean       @default(true)
   failedLoginAttempts Int           @default(0)
   lockedUntil         DateTime?
@@ -130,7 +130,7 @@ model User {
   resetTokens         PasswordResetToken[]
   auditLogs           AuditLog[]
 
-  @@unique([organizationId, universityId])
+  @@unique([organizationId, credentialId])
   @@unique([organizationId, rut])
   @@index([organizationId, role])
 }
@@ -261,18 +261,6 @@ model Infraction {
   evidenceUrl  String?
 
   @@index([organizationId, status])
-  @@index([userId])
-}
-
-model PushToken {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  platform  String?
-  device    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
   @@index([userId])
 }
 

@@ -2,12 +2,20 @@ import { NextRequest } from "next/server";
 import { expect, vi } from "vitest";
 import type { OrganizationStatus } from "@prisma/client";
 import { loadActor } from "@/lib/actor";
-import { signToken } from "@/lib/jwt";
+import { COOKIE_NAME, signToken } from "@/lib/jwt";
 import type { TenantRole } from "@/lib/auth";
 import type { PlanInfo } from "@/lib/plan";
 
 export const ORG_A = "org-a";
 export const ORG_B = "org-b";
+
+export const ORG_BRAND = {
+  slug: "org-a-slug",
+  name: "Organización A",
+  displayName: "Org A",
+  logoUrl: null,
+  brandColor: null,
+};
 
 export const FULL_PLAN: PlanInfo = {
   name: "Prueba",
@@ -30,7 +38,7 @@ type As = {
 type Init = { method?: string; body?: unknown };
 
 function build(path: string, token: string, init: Init) {
-  const headers: Record<string, string> = { authorization: `Bearer ${token}` };
+  const headers: Record<string, string> = { cookie: `${COOKIE_NAME}=${token}` };
   if (init.body !== undefined) headers["content-type"] = "application/json";
   return new NextRequest(`http://localhost${path}`, {
     method: init.method ?? "GET",
@@ -50,7 +58,7 @@ export async function tenantRequest(path: string, as: As, init: Init = {}) {
     role: as.role,
     active: as.active ?? true,
     organizationId,
-    organization: { status: as.status ?? "ACTIVE", plan: { ...FULL_PLAN, ...as.plan } },
+    organization: { status: as.status ?? "ACTIVE", ...ORG_BRAND, plan: { ...FULL_PLAN, ...as.plan } },
   });
   const token = await signToken({ sub, email, role: as.role, name: sub, organizationId });
   return build(path, token, init);

@@ -4,9 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 
 import { loadActor } from "@/lib/actor";
-import { signToken } from "@/lib/jwt";
+import { COOKIE_NAME, signToken } from "@/lib/jwt";
 import { withPlatform, withTenant } from "./api";
-import { FULL_PLAN, ORG_A, params, platformRequest, tenantRequest } from "@/test/tenant";
+import { FULL_PLAN, ORG_A, ORG_BRAND, params, platformRequest, tenantRequest } from "@/test/tenant";
 
 const handler = vi.fn(async (_req: NextRequest, ctx: { session: unknown }) =>
   NextResponse.json({ session: ctx.session })
@@ -23,6 +23,15 @@ describe("withTenant", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
+  it("ya no acepta la sesión enviada como Bearer", async () => {
+    const token = await signToken({ sub: "admin-a", email: "admin-a@test.cl", role: "ADMIN", name: "admin-a", organizationId: ORG_A });
+    const req = new NextRequest("http://localhost/x", { headers: { authorization: `Bearer ${token}` } });
+    const res = await withTenant(handler)(req, params({}));
+    expect(res.status).toBe(401);
+    expect(loadActor).not.toHaveBeenCalled();
+    expect(handler).not.toHaveBeenCalled();
+  });
+
   it("entrega al handler la organización y el plan de la base", async () => {
     const res = await withTenant(handler)(await tenantRequest("/x", { role: "ADMIN" }), params({}));
     expect(res.status).toBe(200);
@@ -32,6 +41,7 @@ describe("withTenant", () => {
       name: "admin-a",
       role: "ADMIN",
       organizationId: ORG_A,
+      organization: ORG_BRAND,
       plan: FULL_PLAN,
     });
   });
@@ -68,7 +78,7 @@ describe("withTenant", () => {
       role: "USER",
       active: true,
       organizationId: ORG_A,
-      organization: { status: "ACTIVE", plan: FULL_PLAN },
+      organization: { status: "ACTIVE", ...ORG_BRAND, plan: FULL_PLAN },
     });
     const res = await withTenant(handler)(req, params({}));
     expect(res.status).toBe(401);
@@ -85,7 +95,7 @@ describe("withTenant", () => {
       organizationId: null,
       organization: null,
     });
-    const req = new NextRequest("http://localhost/x", { headers: { authorization: `Bearer ${token}` } });
+    const req = new NextRequest("http://localhost/x", { headers: { cookie: `${COOKIE_NAME}=${token}` } });
     const res = await withTenant(handler)(req, params({}));
     expect(res.status).toBe(403);
     expect(handler).not.toHaveBeenCalled();

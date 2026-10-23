@@ -10,12 +10,21 @@ import type { PlanInfo } from "./plan";
 
 export type TenantRole = Exclude<Role, "SUPER_ADMIN">;
 
+export type OrganizationBrand = {
+  slug: string;
+  name: string;
+  displayName: string;
+  logoUrl: string | null;
+  brandColor: string | null;
+};
+
 export type TenantSession = {
   sub: string;
   email: string;
   name: string;
   role: TenantRole;
   organizationId: string;
+  organization: OrganizationBrand;
   plan: PlanInfo;
 };
 
@@ -68,10 +77,6 @@ export async function getSession(): Promise<SessionPayload | null> {
 export async function getSessionFromRequest(
   req: NextRequest
 ): Promise<SessionPayload | null> {
-  const bearer = req.headers.get("authorization");
-  if (bearer?.startsWith("Bearer ")) {
-    return verifyToken(bearer.slice(7));
-  }
   const token = req.cookies.get(COOKIE_NAME)?.value;
   if (!token) return null;
   return verifyToken(token);
@@ -91,14 +96,22 @@ export async function resolveActor(session: SessionPayload | null) {
 }
 
 export function asTenant(actor: Actor): TenantSession | null {
-  if (actor.role === "SUPER_ADMIN" || !actor.organizationId || !actor.organization) return null;
+  const org = actor.organization;
+  if (actor.role === "SUPER_ADMIN" || !actor.organizationId || !org) return null;
   return {
     sub: actor.id,
     email: actor.email,
     name: actor.name,
     role: actor.role,
     organizationId: actor.organizationId,
-    plan: actor.organization.plan,
+    organization: {
+      slug: org.slug,
+      name: org.name,
+      displayName: org.displayName,
+      logoUrl: org.logoUrl,
+      brandColor: org.brandColor,
+    },
+    plan: org.plan,
   };
 }
 

@@ -3,7 +3,7 @@ import { SLUG_PATTERN, slugify } from "./slug";
 
 describe("slugify", () => {
   it("quita tildes, mayúsculas y espacios", () => {
-    expect(slugify("USM Sede Viña del Mar")).toBe("usm-sede-vina-del-mar");
+    expect(slugify("Campus Viña del Mar")).toBe("campus-vina-del-mar");
   });
 
   it("no deja guiones al inicio ni al final", () => {

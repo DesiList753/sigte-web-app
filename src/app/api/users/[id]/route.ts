@@ -10,7 +10,7 @@ const patchSchema = z.object({
   name: z.string().min(2).optional(),
   role: z.enum(["USER", "GUARD", "ADMIN"]).optional(),
   active: z.boolean().optional(),
-  universityId: z.string().optional(),
+  credentialId: z.string().optional(),
 });
 
 async function otherActiveAdmins(organizationId: string, userId: string) {
@@ -23,12 +23,12 @@ export const PATCH = withTenant<{ id: string }>(
   async (req, { session, params }) => {
     const parsed = await parseJson(req, patchSchema);
     if (!parsed.ok) return parsed.response;
-    const { role, active, universityId } = parsed.data;
+    const { role, active, credentialId } = parsed.data;
     const organizationId = session.organizationId;
 
     const target = await prisma.user.findFirst({
       where: { id: params.id, organizationId },
-      select: { id: true, email: true, role: true, active: true, universityId: true },
+      select: { id: true, email: true, role: true, active: true, credentialId: true },
     });
     if (!target) return jsonError(404, "Usuario no encontrado");
 
@@ -40,9 +40,9 @@ export const PATCH = withTenant<{ id: string }>(
       return jsonError(409, "La organización debe tener al menos un administrador activo");
     }
 
-    if (universityId && universityId !== target.universityId) {
+    if (credentialId && credentialId !== target.credentialId) {
       const collision = await prisma.user.findUnique({
-        where: { organizationId_universityId: { organizationId, universityId } },
+        where: { organizationId_credentialId: { organizationId, credentialId } },
       });
       if (collision) return jsonError(409, "La credencial ya existe en tu organización");
     }
@@ -68,7 +68,7 @@ export const PATCH = withTenant<{ id: string }>(
       const updated = await tx.user.update({
         where: { id: target.id },
         data: parsed.data,
-        select: { id: true, email: true, name: true, role: true, active: true, universityId: true },
+        select: { id: true, email: true, name: true, role: true, active: true, credentialId: true },
       });
       if (logs.length) await tx.auditLog.createMany({ data: logs });
       return updated;

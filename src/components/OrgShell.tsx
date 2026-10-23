@@ -1,8 +1,9 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { I } from "@/components/Icon";
 import { Card, OrgBrand } from "@/components/ui-system";
 import type { PublicOrganization } from "@/lib/public-org";
+import { orgTheme } from "@/lib/theme";
 
 export function OrgShell({
   org,
@@ -13,10 +14,10 @@ export function OrgShell({
   back?: string;
   children: ReactNode;
 }) {
-  const theme = org.brandColor ? ({ "--accent": org.brandColor } as CSSProperties) : undefined;
+  const theme = orgTheme(org.brandColor);
   return (
     <main
-      className={org.brandColor ? "org-theme" : undefined}
+      className={theme.className}
       style={{
         minHeight: "100vh",
         display: "grid",
@@ -25,7 +26,7 @@ export function OrgShell({
         gap: 16,
         background: "var(--bg)",
         padding: 24,
-        ...theme,
+        ...theme.style,
       }}
     >
       <Card style={{ width: "100%", maxWidth: 460 }}>
@@ -38,7 +39,7 @@ export function OrgShell({
           </Link>
         )}
         <div style={{ display: "flex", marginBottom: 22 }}>
-          <OrgBrand name={org.displayName} logoUrl={org.logoUrl} />
+          <OrgBrand name={org.displayName} legalName={org.name} logoUrl={org.logoUrl} />
         </div>
         {children}
       </Card>

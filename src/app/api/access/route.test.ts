@@ -31,10 +31,6 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-vi.mock("@/lib/push", () => ({
-  sendPushToUser: vi.fn().mockResolvedValue(undefined),
-}));
-
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "./route";
 import { ORG_A, ORG_B, onlyInOrg, params, scopedTo, tenantRequest } from "@/test/tenant";

@@ -12,6 +12,7 @@ const items: (PanelNavItem & { feature?: PlanFeature })[] = [
   { href: "/admin/access", label: "Accesos", icon: "history" },
   { href: "/admin/infractions", label: "Infracciones", icon: "shieldAlert", feature: "INFRACTIONS" },
   { href: "/admin/audit", label: "Auditoría", icon: "list" },
+  { href: "/admin/configuracion", label: "Configuración", icon: "sliders" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const groups = [{ grp: "Administración", items: items.filter((it) => !it.feature || features.includes(it.feature)) }];
   return (
     <PlanProvider features={features}>
-      <PanelShell groups={groups} title="Administración" subtitle="Vista de mando" userName={session.name} userRole="Administración">
+      <PanelShell groups={groups} title="Administración" subtitle="Vista de mando" brand={session.organization} userName={session.name} userRole="Administración">
         {children}
       </PanelShell>
       <Toaster richColors position="top-right" />

@@ -256,7 +256,7 @@ export default function PlatformOrganizationDetail() {
             </label>
             <div className="field">
               <label className="field-lbl" htmlFor="domains">Dominios de correo permitidos</label>
-              <input id="domains" className="input" placeholder="usm.cl, sansano.usm.cl" value={form.allowedEmailDomains} onChange={(e) => setForm({ ...form, allowedEmailDomains: e.target.value })} />
+              <input id="domains" className="input" placeholder="organizacion.cl, alumnos.organizacion.cl" value={form.allowedEmailDomains} onChange={(e) => setForm({ ...form, allowedEmailDomains: e.target.value })} />
               <span className="field-hint">Déjalo vacío para aceptar cualquier correo.</span>
             </div>
             <div className="row" style={{ justifyContent: "flex-end" }}>

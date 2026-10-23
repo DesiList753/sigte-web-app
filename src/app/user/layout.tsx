@@ -18,7 +18,7 @@ export default async function UserLayout({ children }: { children: React.ReactNo
   const features = session.plan.features;
   return (
     <PlanProvider features={features}>
-      <PortalShell tabs={tabs.filter((t) => !t.feature || features.includes(t.feature))} userName={session.name}>
+      <PortalShell tabs={tabs.filter((t) => !t.feature || features.includes(t.feature))} userName={session.name} brand={session.organization}>
         {children}
       </PortalShell>
       <Toaster richColors position="top-right" />

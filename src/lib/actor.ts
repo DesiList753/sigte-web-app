@@ -13,6 +13,11 @@ export function loadActor(id: string) {
       organization: {
         select: {
           status: true,
+          slug: true,
+          name: true,
+          displayName: true,
+          logoUrl: true,
+          brandColor: true,
           plan: {
             select: {
               name: true,

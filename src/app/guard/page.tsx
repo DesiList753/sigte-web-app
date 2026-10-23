@@ -15,7 +15,7 @@ type Vehicle = {
   model: string | null;
   color: string | null;
   authorized: boolean;
-  owner: { id: string; name: string; email: string; universityId: string | null };
+  owner: { id: string; name: string; email: string; credentialId: string | null };
   currentBlock: { id: string; name: string } | null;
 };
 type Block = {
@@ -114,7 +114,7 @@ export default function GuardAccess() {
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Control de acceso</h1>
           <p className="muted" style={{ fontSize: 13 }}>
-            Validación por patente, código QR o credencial universitaria
+            Validación por patente, código QR o credencial
           </p>
         </div>
         <Link href="/guard/occupancy" className="btn ghost">
@@ -253,9 +253,9 @@ function VehicleCard({
           <p style={{ fontSize: 13, marginTop: 8 }}>
             <span className="muted">Dueño: </span>
             <span style={{ fontWeight: 600 }}>{vehicle.owner.name}</span>
-            {vehicle.owner.universityId && (
+            {vehicle.owner.credentialId && (
               <span className="mono muted" style={{ marginLeft: 8, fontSize: 12 }}>
-                ({vehicle.owner.universityId})
+                ({vehicle.owner.credentialId})
               </span>
             )}
           </p>

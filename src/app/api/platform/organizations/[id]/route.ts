@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, withPlatform } from "@/lib/api";
 import { auditData } from "@/lib/audit";
 import { slugSchema } from "@/lib/organizations";
+import { organizationSettingsSchema } from "@/lib/organization-schema";
 import { limitUsage } from "@/lib/plan";
 import { usageByOrganization } from "@/lib/usage";
 
@@ -43,25 +44,9 @@ export const GET = withPlatform<{ id: string }>(async (_req, { params }) => {
   });
 });
 
-const patchSchema = z.object({
+const patchSchema = organizationSettingsSchema.extend({
   name: z.string().min(2).optional(),
-  displayName: z.string().min(2).optional(),
   slug: slugSchema.optional(),
-  logoUrl: z
-    .string()
-    .refine((v) => v.startsWith("/") || v.startsWith("https://"), "Usa una URL https o una ruta del sitio")
-    .nullable()
-    .optional(),
-  brandColor: z
-    .string()
-    .regex(/^#[0-9a-fA-F]{6}$/, "Usa un color en formato #RRGGBB")
-    .nullable()
-    .optional(),
-  registrationForm: z.enum(["BASIC", "ACADEMIC"]).optional(),
-  selfRegistration: z.boolean().optional(),
-  allowedEmailDomains: z
-    .array(z.string().regex(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/, "Dominio inválido"))
-    .optional(),
   planId: z.string().min(1).optional(),
   status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
 });

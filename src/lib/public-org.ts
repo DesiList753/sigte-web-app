@@ -6,6 +6,7 @@ export const publicOrganization = cache((slug: string) =>
     where: { slug },
     select: {
       slug: true,
+      name: true,
       displayName: true,
       logoUrl: true,
       brandColor: true,

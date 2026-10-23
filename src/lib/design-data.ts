@@ -1,6 +1,3 @@
-// Tipos y etiquetas que consumen los componentes de presentación USM.
-// Mapean las formas de datos de las APIs actuales a lo que la UI necesita.
-
 export type Estado = "go" | "no" | "wait" | "neutral";
 
 export const ESTADO_LABEL: Record<Estado | "info", string> = {
