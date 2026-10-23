@@ -19,7 +19,7 @@ export const GET = withTenant(async (_req, { session }) => {
     },
   });
   return NextResponse.json({ infractions });
-});
+}, { feature: "INFRACTIONS" });
 
 const createSchema = z.object({
   vehicleId: z.string().optional(),
@@ -79,5 +79,5 @@ export const POST = withTenant(
 
     return NextResponse.json({ infraction }, { status: 201 });
   },
-  { roles: ["GUARD", "ADMIN"] }
+  { roles: ["GUARD", "ADMIN"], feature: "INFRACTIONS" }
 );

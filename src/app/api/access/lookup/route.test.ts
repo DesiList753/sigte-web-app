@@ -41,6 +41,24 @@ describe("GET /api/access/lookup", () => {
     );
   });
 
+  it("no busca por QR si el plan no incluye QR", async () => {
+    const req = await tenantRequest("/api/access/lookup?qr=x", { role: "GUARD", plan: { name: "Sin QR", features: [] } });
+    const res = await GET(req, params({}));
+    expect(res.status).toBe(403);
+    expect(prisma.vehicle.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("sin infracciones en el plan no cuenta infracciones abiertas", async () => {
+    vi.mocked(prisma.vehicle.findUnique).mockResolvedValue({ id: "v-a", plate: "AA1111" } as never);
+    const req = await tenantRequest("/api/access/lookup?plate=AA1111", {
+      role: "GUARD",
+      plan: { name: "Básico", features: ["QR"] },
+    });
+    const body = await (await GET(req, params({}))).json();
+    expect(body.openInfractions).toBe(0);
+    expect(prisma.infraction.count).not.toHaveBeenCalled();
+  });
+
   it("busca la credencial dentro de la organización de la sesión", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
     await lookup("uid=USR-0001");

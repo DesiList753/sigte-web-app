@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { auditData } from "@/lib/audit";
+import { limitBlock, limitKindFor } from "@/lib/plan";
 
 const patchSchema = z.object({
   name: z.string().min(2).optional(),
@@ -44,6 +45,14 @@ export const PATCH = withTenant<{ id: string }>(
         where: { organizationId_universityId: { organizationId, universityId } },
       });
       if (collision) return jsonError(409, "La credencial ya existe en tu organización");
+    }
+
+    const finalKind = limitKindFor(role ?? target.role);
+    const takesNewSeat =
+      (active ?? target.active) && (!target.active || finalKind !== limitKindFor(target.role));
+    if (takesNewSeat) {
+      const limited = await limitBlock(organizationId, session.plan, finalKind);
+      if (limited) return planError(limited);
     }
 
     const base = { organizationId, actor: session, entity: "USER" as const, entityId: target.id };

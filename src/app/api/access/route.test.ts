@@ -52,6 +52,17 @@ describe("GET /api/access", () => {
     expect(prisma.accessLog.findMany).toHaveBeenCalledWith(scopedTo(ORG_A));
   });
 
+  it("no exporta CSV si el plan no incluye reportes", async () => {
+    const req = await tenantRequest("/api/access?format=csv", {
+      role: "ADMIN",
+      plan: { name: "Profesional", features: ["QR", "INFRACTIONS"] },
+    });
+    const res = await GET(req, params({}));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("PLAN_FEATURE");
+    expect(prisma.accessLog.findMany).not.toHaveBeenCalled();
+  });
+
   it("a un USER además lo limita a sus vehículos", async () => {
     await GET(await tenantRequest("/api/access", { role: "USER", sub: "user-1" }), params({}));
     expect(prisma.accessLog.findMany).toHaveBeenCalledWith(
@@ -87,6 +98,17 @@ describe("POST /api/access con QR", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/expirado/i);
+  });
+
+  it("no acepta QR si el plan no incluye QR", async () => {
+    const req = await tenantRequest(
+      "/api/access",
+      { role: "GUARD", plan: { name: "Sin QR", features: [] } },
+      { method: "POST", body: { qrToken: signQrToken(mockVehicle.id), method: "QR", direction: "IN" } }
+    );
+    const res = await POST(req, params({}));
+    expect(res.status).toBe(403);
+    expect(prisma.vehicle.findFirst).not.toHaveBeenCalled();
   });
 
   it("no registra el QR válido de un vehículo de otra organización", async () => {

@@ -33,4 +33,4 @@ export const GET = withTenant(async (req, { session }) => {
     issuedAt,
     expiresAt,
   });
-});
+}, { feature: "QR" });

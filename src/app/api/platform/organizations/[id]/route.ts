@@ -5,13 +5,25 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, withPlatform } from "@/lib/api";
 import { auditData } from "@/lib/audit";
 import { slugSchema } from "@/lib/organizations";
+import { limitUsage } from "@/lib/plan";
 import { usageByOrganization } from "@/lib/usage";
 
 export const GET = withPlatform<{ id: string }>(async (_req, { params }) => {
   const organization = await prisma.organization.findUnique({
     where: { id: params.id },
     include: {
-      plan: { select: { id: true, code: true, name: true } },
+      plan: {
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          features: true,
+          maxUsers: true,
+          maxGuards: true,
+          maxBlocks: true,
+          maxVehicles: true,
+        },
+      },
       users: {
         where: { role: "ADMIN" },
         orderBy: { createdAt: "asc" },
@@ -21,9 +33,14 @@ export const GET = withPlatform<{ id: string }>(async (_req, { params }) => {
   });
   if (!organization) return jsonError(404, "Organización no encontrada");
 
-  const usage = await usageByOrganization(organization.id);
+  const [usage, limits] = await Promise.all([
+    usageByOrganization(organization.id),
+    limitUsage(organization.id, organization.plan),
+  ]);
   const { users: admins, ...rest } = organization;
-  return NextResponse.json({ organization: { ...rest, admins, usage: usage.get(organization.id) } });
+  return NextResponse.json({
+    organization: { ...rest, admins, usage: usage.get(organization.id), limits },
+  });
 });
 
 const patchSchema = z.object({

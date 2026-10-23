@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError, ZodSchema } from "zod";
+import type { PlanFeature } from "@prisma/client";
 import {
   asTenant,
   getSessionFromRequest,
@@ -7,6 +8,7 @@ import {
   type TenantRole,
   type TenantSession,
 } from "./auth";
+import { featureBlock, type PlanBlock } from "./plan";
 
 export type TenantHandler<T = unknown> = (
   req: NextRequest,
@@ -22,7 +24,7 @@ export type PlatformHandler<T = unknown> = (
 
 export function withTenant<T = Record<string, never>>(
   handler: TenantHandler<T>,
-  opts?: { roles?: TenantRole[] }
+  opts?: { roles?: TenantRole[]; feature?: PlanFeature }
 ) {
   return async (req: NextRequest, ctx: { params: Promise<T> }) => {
     const actor = await resolveActor(await getSessionFromRequest(req));
@@ -35,9 +37,15 @@ export function withTenant<T = Record<string, never>>(
     if (opts?.roles && !opts.roles.includes(session.role)) {
       return jsonError(403, "Acceso denegado para el rol " + session.role);
     }
+    const blocked = opts?.feature ? featureBlock(session.plan, opts.feature) : null;
+    if (blocked) return planError(blocked);
     const resolvedParams = ctx?.params ? await ctx.params : ({} as T);
     return handler(req, { session, params: resolvedParams });
   };
+}
+
+export function planError(block: PlanBlock) {
+  return jsonError(403, block.message, block.extra);
 }
 
 export function withPlatform<T = Record<string, never>>(handler: PlatformHandler<T>) {

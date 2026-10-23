@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { Metric, Card, LotGrid } from "@/components/ui-system";
 import { ChartsUSM } from "@/components/ChartsUSM";
+import { useFeature } from "@/components/PlanContext";
+import { PlanUsage, type Limits } from "@/components/PlanUsage";
 import { lotLevel, type Lot } from "@/lib/design-data";
 
 type Dashboard = {
+  plan?: { name: string; limits: Limits };
   metrics: {
     totalUsers: number;
     totalGuards: number;
@@ -29,6 +32,7 @@ type Dashboard = {
 };
 
 export default function AdminDashboard() {
+  const reports = useFeature("REPORTS");
   const [data, setData] = useState<Dashboard | null>(null);
 
   useEffect(() => {
@@ -100,16 +104,28 @@ export default function AdminDashboard() {
         />
       </div>
 
-      <Card title="Ocupación ahora">
-        <LotGrid cols={3} lots={lots} />
-      </Card>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, alignItems: "start" }}>
+        <Card title="Ocupación ahora" style={{ minWidth: 0 }}>
+          <LotGrid cols={3} lots={lots} />
+        </Card>
+        {data.plan && (
+          <Card title={`Plan ${data.plan.name}`} style={{ minWidth: 0 }}>
+            <PlanUsage limits={data.plan.limits} />
+            <p className="muted" style={{ fontSize: 12, marginTop: 14 }}>
+              El bloque por defecto no cuenta para el límite. Para ampliar tu plan, contacta a VanillaSoft.
+            </p>
+          </Card>
+        )}
+      </div>
 
-      <ChartsUSM
-        series={data.series}
-        occupancy={data.occupancy}
-        methodDist={data.methodDist}
-        topVehicles={data.topVehicles}
-      />
+      {reports && (
+        <ChartsUSM
+          series={data.series}
+          occupancy={data.occupancy}
+          methodDist={data.methodDist}
+          topVehicles={data.topVehicles}
+        />
+      )}
     </div>
   );
 }

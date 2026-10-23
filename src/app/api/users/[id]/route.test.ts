@@ -104,6 +104,44 @@ describe("PATCH /api/users/[id]", () => {
   });
 });
 
+describe("PATCH /api/users/[id] con límites del plan", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.user.findFirst).mockImplementation(onlyInOrg(ORG_A, target));
+  });
+
+  async function patchWithPlan(body: Record<string, unknown>, plan: Record<string, unknown>) {
+    const req = await tenantRequest(
+      "/api/users/target-1",
+      { role: "ADMIN", sub: "admin-1", plan },
+      { method: "PATCH", body }
+    );
+    return PATCH(req, params({ id: "target-1" }));
+  }
+
+  it("no convierte en guardia si el plan llegó al tope de guardias", async () => {
+    vi.mocked(prisma.user.count).mockResolvedValueOnce(2);
+    const res = await patchWithPlan({ role: "GUARD" }, { name: "Básico", maxGuards: 2 });
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("PLAN_LIMIT");
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("reactivar a alguien también respeta el tope de usuarios", async () => {
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({ ...target, active: false } as never);
+    vi.mocked(prisma.user.count).mockResolvedValueOnce(5);
+    const res = await patchWithPlan({ active: true }, { name: "Básico", maxUsers: 5 });
+    expect(res.status).toBe(403);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("pasar de usuario a admin no ocupa un cupo nuevo", async () => {
+    const res = await patchWithPlan({ role: "ADMIN" }, { name: "Básico", maxUsers: 1 });
+    expect(res.status).toBe(200);
+    expect(prisma.user.count).not.toHaveBeenCalled();
+  });
+});
+
 describe("DELETE /api/users/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();

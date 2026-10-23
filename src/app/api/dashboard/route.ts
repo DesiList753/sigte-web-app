@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withTenant } from "@/lib/api";
+import { limitUsage } from "@/lib/plan";
 import { dayKey, hourOf, startOfDay } from "@/lib/time";
 
 export const GET = withTenant(async (_req, { session }) => {
@@ -8,6 +9,7 @@ export const GET = withTenant(async (_req, { session }) => {
   const todayStart = startOfDay(now);
   const last7 = new Date(now.getTime() - 7 * 86400_000);
   const organizationId = session.organizationId;
+  const reports = session.plan.features.includes("REPORTS");
 
   if (session.role === "USER") {
     const [vehicles, accessToday, openInfractions, unreadNotifs] = await Promise.all([
@@ -60,13 +62,15 @@ export const GET = withTenant(async (_req, { session }) => {
       orderBy: { name: "asc" },
       include: { _count: { select: { vehicles: true } } },
     }),
-    prisma.accessLog.groupBy({
-      by: ["vehicleId"],
-      where: { organizationId, timestamp: { gte: last7 }, direction: "IN" },
-      _count: { vehicleId: true },
-      orderBy: { _count: { vehicleId: "desc" } },
-      take: 5,
-    }),
+    reports
+      ? prisma.accessLog.groupBy({
+          by: ["vehicleId"],
+          where: { organizationId, timestamp: { gte: last7 }, direction: "IN" },
+          _count: { vehicleId: true },
+          orderBy: { _count: { vehicleId: "desc" } },
+          take: 5,
+        })
+      : Promise.resolve([]),
   ]);
 
   const byDay: Record<string, { in: number; out: number }> = {};
@@ -104,18 +108,30 @@ export const GET = withTenant(async (_req, { session }) => {
     percentage: Math.round((b._count.vehicles / b.capacity) * 100),
   }));
 
-  const topRows = await prisma.vehicle.findMany({
-    where: { organizationId, id: { in: topVehiclesRaw.map((r) => r.vehicleId) } },
-    select: { id: true, plate: true, owner: { select: { name: true } } },
-  });
+  const topRows = topVehiclesRaw.length
+    ? await prisma.vehicle.findMany({
+        where: { organizationId, id: { in: topVehiclesRaw.map((r) => r.vehicleId) } },
+        select: { id: true, plate: true, owner: { select: { name: true } } },
+      })
+    : [];
   const topById = new Map(topRows.map((v) => [v.id, v]));
   const topVehicles = topVehiclesRaw.map((row) => {
     const v = topById.get(row.vehicleId);
     return { plate: v?.plate ?? "?", owner: v?.owner?.name ?? "—", count: row._count.vehicleId };
   });
 
+  const plan =
+    session.role === "ADMIN"
+      ? {
+          name: session.plan.name,
+          features: session.plan.features,
+          limits: await limitUsage(organizationId, session.plan),
+        }
+      : undefined;
+
   return NextResponse.json({
     scope: session.role.toLowerCase(),
+    plan,
     metrics: {
       totalUsers,
       totalGuards,
@@ -132,9 +148,9 @@ export const GET = withTenant(async (_req, { session }) => {
       authRate,
       peakHour: peakHour !== null ? `${String(peakHour).padStart(2, "0")}:00` : null,
     },
-    series,
+    series: reports ? series : [],
     occupancy,
     topVehicles,
-    methodDist,
+    methodDist: reports ? methodDist : {},
   });
 });

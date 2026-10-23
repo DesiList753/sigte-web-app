@@ -13,6 +13,7 @@ vi.mock("@/lib/prisma", async () => {
           { id: "default-a", name: "No definido", description: null, capacity: 50, _count: { vehicles: 1 } },
         ]),
         findUnique: vi.fn().mockResolvedValue(null),
+        count: vi.fn().mockResolvedValue(0),
         create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-block", ...data })),
       },
       vehicle: { count: vi.fn().mockResolvedValue(3) },
@@ -69,6 +70,19 @@ describe("POST /api/parking", () => {
     expect(prisma.parkingBlock.findUnique).toHaveBeenCalledWith({
       where: { organizationId_name: { organizationId: ORG_A, name: "A" } },
     });
+  });
+
+  it("no crea bloques si el plan llegó al tope", async () => {
+    vi.mocked(prisma.parkingBlock.count).mockResolvedValueOnce(3);
+    const req = await tenantRequest(
+      "/api/parking",
+      { role: "ADMIN", plan: { name: "Básico", maxBlocks: 3 } },
+      { method: "POST", body: { name: "Cuarto", capacity: 10 } }
+    );
+    const res = await POST(req, params({}));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("PLAN_LIMIT");
+    expect(prisma.parkingBlock.create).not.toHaveBeenCalled();
   });
 
   it("solo un ADMIN puede crear bloques", async () => {

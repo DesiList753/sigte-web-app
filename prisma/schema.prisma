@@ -52,6 +52,7 @@ enum AuditEntity {
   VEHICLE
   PARKING_BLOCK
   INFRACTION
+  PLAN
 }
 
 model Plan {

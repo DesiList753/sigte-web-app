@@ -5,6 +5,7 @@ import { requirePlatformActor } from "@/lib/auth";
 const groups: PanelNavGroup[] = [
   { grp: "Plataforma", items: [
     { href: "/platform", label: "Organizaciones", icon: "list" },
+    { href: "/platform/plans", label: "Planes", icon: "sliders" },
     { href: "/platform/audit", label: "Auditoría", icon: "history" },
   ] },
 ];

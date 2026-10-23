@@ -6,7 +6,7 @@ vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 import { loadActor } from "@/lib/actor";
 import { signToken } from "@/lib/jwt";
 import { withPlatform, withTenant } from "./api";
-import { ORG_A, params, platformRequest, tenantRequest } from "@/test/tenant";
+import { FULL_PLAN, ORG_A, params, platformRequest, tenantRequest } from "@/test/tenant";
 
 const handler = vi.fn(async (_req: NextRequest, ctx: { session: unknown }) =>
   NextResponse.json({ session: ctx.session })
@@ -23,7 +23,7 @@ describe("withTenant", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it("entrega al handler la organización de la base", async () => {
+  it("entrega al handler la organización y el plan de la base", async () => {
     const res = await withTenant(handler)(await tenantRequest("/x", { role: "ADMIN" }), params({}));
     expect(res.status).toBe(200);
     expect((await res.json()).session).toEqual({
@@ -32,7 +32,18 @@ describe("withTenant", () => {
       name: "admin-a",
       role: "ADMIN",
       organizationId: ORG_A,
+      plan: FULL_PLAN,
     });
+  });
+
+  it("bloquea un endpoint cuya función no está en el plan", async () => {
+    const req = await tenantRequest("/x", { role: "ADMIN", plan: { name: "Básico", features: ["QR"] } });
+    const res = await withTenant(handler, { feature: "INFRACTIONS" })(req, params({}));
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.code).toBe("PLAN_FEATURE");
+    expect(body.error).toMatch(/Básico no incluye las infracciones/);
+    expect(handler).not.toHaveBeenCalled();
   });
 
   it("rechaza a un usuario desactivado", async () => {
@@ -57,7 +68,7 @@ describe("withTenant", () => {
       role: "USER",
       active: true,
       organizationId: ORG_A,
-      organization: { status: "ACTIVE" },
+      organization: { status: "ACTIVE", plan: FULL_PLAN },
     });
     const res = await withTenant(handler)(req, params({}));
     expect(res.status).toBe(401);

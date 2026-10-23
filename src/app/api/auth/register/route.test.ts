@@ -12,6 +12,7 @@ vi.mock("@/lib/prisma", async () => {
       organization: { findUnique: vi.fn() },
       user: {
         findUnique: vi.fn().mockResolvedValue(null),
+        count: vi.fn().mockResolvedValue(0),
         create: vi.fn().mockImplementation(({ data }) =>
           Promise.resolve({ id: "new-user", role: "USER", ...data })
         ),
@@ -28,6 +29,7 @@ const ORG = {
   status: "ACTIVE",
   selfRegistration: true,
   allowedEmailDomains: [] as string[],
+  plan: { name: "Básico", features: ["QR"], maxUsers: null, maxGuards: null, maxBlocks: null, maxVehicles: null },
 };
 
 const student = {
@@ -95,6 +97,20 @@ describe("POST /api/auth/register", () => {
     vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, selfRegistration: false } as never);
     const res = await POST(request(student));
     expect(res.status).toBe(403);
+  });
+
+  it("no registra si la organización llegó al tope de usuarios de su plan", async () => {
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, plan: { ...ORG.plan, maxUsers: 2 } } as never);
+    vi.mocked(prisma.user.count).mockResolvedValueOnce(2);
+    const res = await POST(request(student));
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.code).toBe("PLAN_LIMIT");
+    expect(body.error).toMatch(/máximo de usuarios/);
+    expect(prisma.user.count).toHaveBeenCalledWith({
+      where: { organizationId: "org-a", active: true, role: { in: ["USER", "ADMIN"] } },
+    });
+    expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
   it("exige un correo de los dominios permitidos", async () => {

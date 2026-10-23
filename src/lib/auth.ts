@@ -2,9 +2,11 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextRequest } from "next/server";
-import type { Role } from "@prisma/client";
+import { cache } from "react";
+import type { PlanFeature, Role } from "@prisma/client";
 import { COOKIE_NAME, verifyToken, type SessionPayload } from "./jwt";
 import { loadActor, type Actor } from "./actor";
+import type { PlanInfo } from "./plan";
 
 export type TenantRole = Exclude<Role, "SUPER_ADMIN">;
 
@@ -14,6 +16,7 @@ export type TenantSession = {
   name: string;
   role: TenantRole;
   organizationId: string;
+  plan: PlanInfo;
 };
 
 export async function hashPassword(password: string) {
@@ -88,13 +91,14 @@ export async function resolveActor(session: SessionPayload | null) {
 }
 
 export function asTenant(actor: Actor): TenantSession | null {
-  if (actor.role === "SUPER_ADMIN" || !actor.organizationId) return null;
+  if (actor.role === "SUPER_ADMIN" || !actor.organizationId || !actor.organization) return null;
   return {
     sub: actor.id,
     email: actor.email,
     name: actor.name,
     role: actor.role,
     organizationId: actor.organizationId,
+    plan: actor.organization.plan,
   };
 }
 
@@ -105,9 +109,7 @@ export function homePath(role: Role) {
   return "/user";
 }
 
-export async function getActor() {
-  return resolveActor(await getSession());
-}
+export const getActor = cache(async () => resolveActor(await getSession()));
 
 export async function requirePlatformActor() {
   const actor = await getActor();
@@ -123,5 +125,11 @@ export async function requireTenantActor(roles: TenantRole[]) {
   if (!tenant) redirect(homePath(actor.role));
   if (actor.organization?.status !== "ACTIVE") redirect("/suspendida");
   if (!roles.includes(tenant.role)) redirect(homePath(tenant.role));
+  return tenant;
+}
+
+export async function requireTenantFeature(roles: TenantRole[], feature: PlanFeature, fallback: string) {
+  const tenant = await requireTenantActor(roles);
+  if (!tenant.plan.features.includes(feature)) redirect(fallback);
   return tenant;
 }

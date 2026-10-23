@@ -8,6 +8,16 @@ vi.mock("@/lib/usage", () => ({
   }),
 }));
 
+vi.mock("@/lib/plan", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/plan")>()),
+  limitUsage: vi.fn().mockResolvedValue({
+    users: { used: 1, max: 100 },
+    guards: { used: 3, max: 2 },
+    blocks: { used: 0, max: 3 },
+    vehicles: { used: 0, max: 150 },
+  }),
+}));
+
 vi.mock("@/lib/prisma", async () => {
   const { mockPrismaWithAudit } = await import("@/test/prisma");
   return {
@@ -136,6 +146,7 @@ describe("GET /api/platform/organizations/[id]", () => {
     const res = await GET(await platformRequest("/api/platform/organizations/org-a"), params({ id: "org-a" }));
     const data = await res.json();
     expect(data.organization.admins).toHaveLength(1);
+    expect(data.organization.limits.guards).toEqual({ used: 3, max: 2 });
     expect(prisma.organization.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         include: expect.objectContaining({ users: expect.objectContaining({ where: { role: "ADMIN" } }) }),

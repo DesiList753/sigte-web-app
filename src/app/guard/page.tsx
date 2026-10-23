@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Card, Plate, Badge, Metric } from "@/components/ui-system";
 import { I } from "@/components/Icon";
 import { QrScanner } from "@/components/QrScanner";
+import { useFeature } from "@/components/PlanContext";
 
 type Vehicle = {
   id: string;
@@ -29,6 +30,7 @@ type Totals = { inside: number; capacity: number; free: number; defaultBlockId: 
 type LookupResponse = { vehicle: Vehicle | null; openInfractions?: number; qrError?: "invalido" | "expirado" };
 
 export default function GuardAccess() {
+  const qrEnabled = useFeature("QR");
   const [mode, setMode] = useState<"plate" | "qr" | "uid">("plate");
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<LookupResponse | null>(null);
@@ -102,7 +104,7 @@ export default function GuardAccess() {
 
   const MODES: { id: typeof mode; label: string; icon: string }[] = [
     { id: "plate", label: "Patente", icon: "camera" },
-    { id: "qr", label: "QR", icon: "qr" },
+    ...(qrEnabled ? [{ id: "qr" as const, label: "QR", icon: "qr" }] : []),
     { id: "uid", label: "U-Card", icon: "idcard" },
   ];
 

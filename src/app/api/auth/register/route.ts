@@ -3,8 +3,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, homePath, setSessionCookie } from "@/lib/auth";
 import { signToken } from "@/lib/jwt";
-import { jsonError, parseJson } from "@/lib/api";
+import { jsonError, parseJson, planError } from "@/lib/api";
 import { auditData } from "@/lib/audit";
+import { limitBlock } from "@/lib/plan";
 import { formatRut, isValidRut } from "@/lib/rut";
 
 const baseFields = {
@@ -48,7 +49,15 @@ export async function POST(req: NextRequest) {
 
   const org = await prisma.organization.findUnique({
     where: { slug: data.organizationSlug },
-    select: { id: true, status: true, selfRegistration: true, allowedEmailDomains: true },
+    select: {
+      id: true,
+      status: true,
+      selfRegistration: true,
+      allowedEmailDomains: true,
+      plan: {
+        select: { name: true, features: true, maxUsers: true, maxGuards: true, maxBlocks: true, maxVehicles: true },
+      },
+    },
   });
   if (!org) return jsonError(404, "Organización no encontrada");
   if (org.status !== "ACTIVE" || !org.selfRegistration) {
@@ -75,6 +84,9 @@ export async function POST(req: NextRequest) {
     });
     if (rutCollision) return jsonError(409, "El RUT ya está registrado");
   }
+
+  const limited = await limitBlock(org.id, org.plan, "users", { member: true });
+  if (limited) return planError(limited);
 
   const passwordHash = await hashPassword(data.password);
   const user = await prisma.$transaction(async (tx) => {

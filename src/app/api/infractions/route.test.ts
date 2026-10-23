@@ -36,6 +36,13 @@ describe("GET /api/infractions", () => {
     expect(prisma.infraction.findMany).toHaveBeenCalledWith(scopedTo(ORG_A));
   });
 
+  it("no muestra infracciones si el plan no las incluye", async () => {
+    const req = await tenantRequest("/api/infractions", { role: "ADMIN", plan: { name: "Básico", features: ["QR"] } });
+    const res = await GET(req, params({}));
+    expect(res.status).toBe(403);
+    expect(prisma.infraction.findMany).not.toHaveBeenCalled();
+  });
+
   it("a un USER lo limita a sus infracciones", async () => {
     await GET(await tenantRequest("/api/infractions", { role: "USER", sub: "user-a" }), params({}));
     expect(prisma.infraction.findMany).toHaveBeenCalledWith(

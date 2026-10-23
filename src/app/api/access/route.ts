@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
+import { featureBlock } from "@/lib/plan";
 import { sendPushToUser } from "@/lib/push";
 import { verifyQrToken } from "@/lib/qr";
 
@@ -10,6 +11,8 @@ export const GET = withTenant(async (req, { session }) => {
   const url = new URL(req.url);
   const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50", 10), 500);
   const format = url.searchParams.get("format");
+  const blocked = format === "csv" ? featureBlock(session.plan, "REPORTS") : null;
+  if (blocked) return planError(blocked);
 
   const where: Prisma.AccessLogWhereInput = { organizationId: session.organizationId };
   if (session.role === "USER") {
@@ -67,6 +70,9 @@ export const POST = withTenant(
     if (!parsed.ok) return parsed.response;
     const body = parsed.data;
     const organizationId = session.organizationId;
+
+    const blocked = body.qrToken || body.method === "QR" ? featureBlock(session.plan, "QR") : null;
+    if (blocked) return planError(blocked);
 
     let vehicle = null;
     if (body.vehicleId) {

@@ -4,9 +4,19 @@ import type { OrganizationStatus } from "@prisma/client";
 import { loadActor } from "@/lib/actor";
 import { signToken } from "@/lib/jwt";
 import type { TenantRole } from "@/lib/auth";
+import type { PlanInfo } from "@/lib/plan";
 
 export const ORG_A = "org-a";
 export const ORG_B = "org-b";
+
+export const FULL_PLAN: PlanInfo = {
+  name: "Prueba",
+  features: ["QR", "INFRACTIONS", "REPORTS"],
+  maxUsers: null,
+  maxGuards: null,
+  maxBlocks: null,
+  maxVehicles: null,
+};
 
 type As = {
   role: TenantRole;
@@ -14,6 +24,7 @@ type As = {
   organizationId?: string;
   status?: OrganizationStatus;
   active?: boolean;
+  plan?: Partial<PlanInfo>;
 };
 
 type Init = { method?: string; body?: unknown };
@@ -39,7 +50,7 @@ export async function tenantRequest(path: string, as: As, init: Init = {}) {
     role: as.role,
     active: as.active ?? true,
     organizationId,
-    organization: { status: as.status ?? "ACTIVE" },
+    organization: { status: as.status ?? "ACTIVE", plan: { ...FULL_PLAN, ...as.plan } },
   });
   const token = await signToken({ sub, email, role: as.role, name: sub, organizationId });
   return build(path, token, init);

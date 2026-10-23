@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { jsonError, withTenant } from "@/lib/api";
+import { jsonError, planError, withTenant } from "@/lib/api";
+import { featureBlock } from "@/lib/plan";
 import { verifyQrToken } from "@/lib/qr";
 
 const include = {
@@ -24,6 +25,8 @@ export const GET = withTenant(
         include,
       });
     } else if (qr) {
+      const blocked = featureBlock(session.plan, "QR");
+      if (blocked) return planError(blocked);
       const vResult = verifyQrToken(qr);
       if (!vResult.ok) {
         return NextResponse.json({ vehicle: null, qrError: vResult.error });
@@ -49,9 +52,9 @@ export const GET = withTenant(
 
     if (!vehicle) return NextResponse.json({ vehicle: null });
 
-    const openInfractions = await prisma.infraction.count({
-      where: { vehicleId: vehicle.id, status: "OPEN" },
-    });
+    const openInfractions = session.plan.features.includes("INFRACTIONS")
+      ? await prisma.infraction.count({ where: { vehicleId: vehicle.id, status: "OPEN" } })
+      : 0;
 
     return NextResponse.json({ vehicle, openInfractions });
   },

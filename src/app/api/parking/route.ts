@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { auditData } from "@/lib/audit";
+import { limitBlock } from "@/lib/plan";
 
 export const GET = withTenant(async (_req, { session }) => {
   const organizationId = session.organizationId;
@@ -59,6 +60,9 @@ export const POST = withTenant(
       where: { organizationId_name: { organizationId, name: data.name } },
     });
     if (existing) return jsonError(409, "Ya existe un bloque con ese nombre");
+
+    const limited = await limitBlock(organizationId, session.plan, "blocks");
+    if (limited) return planError(limited);
 
     const block = await prisma.$transaction(async (tx) => {
       const created = await tx.parkingBlock.create({

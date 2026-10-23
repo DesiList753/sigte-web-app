@@ -3,8 +3,9 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { auditData } from "@/lib/audit";
+import { limitBlock, limitKindFor } from "@/lib/plan";
 
 export const GET = withTenant(
   async (req, { session }) => {
@@ -72,6 +73,9 @@ export const POST = withTenant(
       });
       if (collision) return jsonError(409, "La credencial ya existe en tu organización");
     }
+
+    const limited = await limitBlock(organizationId, session.plan, limitKindFor(role));
+    if (limited) return planError(limited);
 
     const passwordHash = await hashPassword(password);
     const user = await prisma.$transaction(async (tx) => {

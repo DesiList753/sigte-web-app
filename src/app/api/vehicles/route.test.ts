@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", async () => {
       vehicle: {
         findMany: vi.fn().mockResolvedValue([]),
         findUnique: vi.fn().mockResolvedValue(null),
+        count: vi.fn().mockResolvedValue(0),
         create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-vehicle", ...data })),
       },
       user: { findFirst: vi.fn() },
@@ -54,6 +55,19 @@ describe("POST /api/vehicles", () => {
       expect.objectContaining({ data: expect.objectContaining({ organizationId: ORG_A, ownerId: "user-a" }) })
     );
     expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "CREATE", "VEHICLE"));
+  });
+
+  it("no registra vehículos si el plan llegó al tope", async () => {
+    vi.mocked(prisma.vehicle.count).mockResolvedValueOnce(150);
+    const req = await tenantRequest(
+      "/api/vehicles",
+      { role: "USER", sub: "user-a", plan: { name: "Básico", maxVehicles: 150 } },
+      { method: "POST", body: { plate: "AB1234" } }
+    );
+    const res = await POST(req, params({}));
+    expect(res.status).toBe(403);
+    expect(prisma.vehicle.count).toHaveBeenCalledWith({ where: { organizationId: ORG_A } });
+    expect(prisma.vehicle.create).not.toHaveBeenCalled();
   });
 
   it("un ADMIN no puede asignar un dueño de otra organización", async () => {

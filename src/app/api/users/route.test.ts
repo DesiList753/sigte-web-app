@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", async () => {
       user: {
         findMany: vi.fn().mockResolvedValue([]),
         findUnique: vi.fn().mockResolvedValue(null),
+        count: vi.fn().mockResolvedValue(0),
         create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-user", ...data })),
       },
     }),
@@ -53,6 +54,22 @@ describe("POST /api/users", () => {
       expect.objectContaining({ data: expect.objectContaining({ organizationId: ORG_A, email: "nuevo@test.cl" }) })
     );
     expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "CREATE", "USER"));
+  });
+
+  it("no crea un guardia si el plan llegó al tope de guardias", async () => {
+    vi.mocked(prisma.user.count).mockResolvedValueOnce(2);
+    const req = await tenantRequest(
+      "/api/users",
+      { role: "ADMIN", plan: { name: "Básico", maxGuards: 2 } },
+      { method: "POST", body: newUser }
+    );
+    const res = await POST(req, params({}));
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.code).toBe("PLAN_LIMIT");
+    expect(body.error).toBe("Tu plan Básico permite hasta 2 guardias. Contacta a VanillaSoft para ampliarlo.");
+    expect(prisma.user.count).toHaveBeenCalledWith({ where: { organizationId: ORG_A, active: true, role: "GUARD" } });
+    expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
   it("revisa la credencial repetida solo dentro de la organización", async () => {

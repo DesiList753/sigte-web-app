@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { auditData } from "@/lib/audit";
+import { limitBlock } from "@/lib/plan";
 
 export const GET = withTenant(async (req, { session }) => {
   const url = new URL(req.url);
@@ -71,6 +72,9 @@ export const POST = withTenant(async (req, { session }) => {
     where: { organizationId_plate: { organizationId, plate } },
   });
   if (existing) return jsonError(409, "Patente ya registrada");
+
+  const limited = await limitBlock(organizationId, session.plan, "vehicles");
+  if (limited) return planError(limited);
 
   const vehicle = await prisma.$transaction(async (tx) => {
     const created = await tx.vehicle.create({

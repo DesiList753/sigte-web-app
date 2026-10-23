@@ -55,5 +55,5 @@ export const PATCH = withTenant<{ id: string }>(
     ]);
     return NextResponse.json({ infraction: updated });
   },
-  { roles: ["USER", "GUARD", "ADMIN"] }
+  { roles: ["USER", "GUARD", "ADMIN"], feature: "INFRACTIONS" }
 );

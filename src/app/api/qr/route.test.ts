@@ -57,6 +57,18 @@ describe("GET /api/qr", () => {
     expect(prisma.vehicle.findFirst).toHaveBeenCalledWith({ where: { id: "vehicle-1", organizationId: ORG_B } });
   });
 
+  it("no genera QR si el plan no incluye QR", async () => {
+    const req = await tenantRequest("/api/qr?vehicleId=vehicle-1", {
+      role: "USER",
+      sub: "user-1",
+      plan: { name: "Básico", features: [] },
+    });
+    const res = await GET(req, params({}));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("PLAN_FEATURE");
+    expect(prisma.vehicle.findFirst).not.toHaveBeenCalled();
+  });
+
   it("responde 404 si el vehiculo no existe", async () => {
     vi.mocked(prisma.vehicle.findFirst).mockResolvedValue(null);
     const res = await callGet("USER", "user-1", "vehicle-inexistente");

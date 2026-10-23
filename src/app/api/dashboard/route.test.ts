@@ -55,6 +55,24 @@ describe("GET /api/dashboard", () => {
     });
   });
 
+  it("sin reportes en el plan no entrega datos de gráficos", async () => {
+    const req = await tenantRequest("/api/dashboard", {
+      role: "ADMIN",
+      plan: { name: "Profesional", features: ["QR", "INFRACTIONS"] },
+    });
+    const body = await (await GET(req, params({}))).json();
+    expect(body.series).toEqual([]);
+    expect(body.methodDist).toEqual({});
+    expect(prisma.accessLog.groupBy).not.toHaveBeenCalled();
+  });
+
+  it("al ADMIN le muestra el uso de su plan", async () => {
+    const req = await tenantRequest("/api/dashboard", { role: "ADMIN", plan: { name: "Básico", maxGuards: 2 } });
+    const body = await (await GET(req, params({}))).json();
+    expect(body.plan.name).toBe("Básico");
+    expect(body.plan.limits.guards).toEqual({ used: 0, max: 2 });
+  });
+
   it("agrupa los accesos por día y hora de Chile", async () => {
     const at = new Date();
     at.setUTCHours(2, 30, 0, 0);

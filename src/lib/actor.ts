@@ -10,7 +10,21 @@ export function loadActor(id: string) {
       role: true,
       active: true,
       organizationId: true,
-      organization: { select: { status: true } },
+      organization: {
+        select: {
+          status: true,
+          plan: {
+            select: {
+              name: true,
+              features: true,
+              maxUsers: true,
+              maxGuards: true,
+              maxBlocks: true,
+              maxVehicles: true,
+            },
+          },
+        },
+      },
     },
   });
 }

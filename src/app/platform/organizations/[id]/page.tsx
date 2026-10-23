@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge, Card, Metric } from "@/components/ui-system";
 import { I } from "@/components/Icon";
 import { AuditTable, type AuditRow } from "@/components/AuditTable";
+import { LIMIT_KEYS, PlanUsage, type LimitKey, type Limits } from "@/components/PlanUsage";
 import { formatDate } from "@/lib/utils";
 
 type Organization = {
@@ -31,9 +32,31 @@ type Organization = {
     vehicles: number;
     accessesThisMonth: number;
   };
+  limits: Limits;
 };
 
-type Plan = { id: string; name: string };
+type Plan = {
+  id: string;
+  name: string;
+  maxUsers: number | null;
+  maxGuards: number | null;
+  maxBlocks: number | null;
+  maxVehicles: number | null;
+};
+
+const PLAN_FIELD: Record<LimitKey, "maxUsers" | "maxGuards" | "maxBlocks" | "maxVehicles"> = {
+  users: "maxUsers",
+  guards: "maxGuards",
+  blocks: "maxBlocks",
+  vehicles: "maxVehicles",
+};
+
+const LIMIT_NOUN: Record<LimitKey, string> = {
+  users: "usuarios",
+  guards: "guardias",
+  blocks: "bloques",
+  vehicles: "vehículos",
+};
 
 type Form = {
   name: string;
@@ -150,6 +173,14 @@ export default function PlatformOrganizationDetail() {
   }
 
   const u = org.usage;
+  const selectedPlan = plans.find((p) => p.id === planId);
+  const exceeded =
+    selectedPlan && planId !== org.planId
+      ? LIMIT_KEYS.filter((key) => {
+          const max = selectedPlan[PLAN_FIELD[key]];
+          return max !== null && org.limits[key].used > max;
+        })
+      : [];
 
   return (
     <div style={{ padding: 24, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 20 }}>
@@ -249,6 +280,18 @@ export default function PlatformOrganizationDetail() {
               >
                 Cambiar plan
               </button>
+            </div>
+            {exceeded.length > 0 && selectedPlan && (
+              <div className="callout warn" style={{ marginTop: 12, fontSize: 13 }}>
+                Con {selectedPlan.name} la organización queda sobre el límite de{" "}
+                {exceeded
+                  .map((key) => `${LIMIT_NOUN[key]} (${org.limits[key].used} de ${selectedPlan[PLAN_FIELD[key]]})`)
+                  .join(", ")}
+                . Conserva lo que ya tiene, pero no podrá crear más.
+              </div>
+            )}
+            <div style={{ marginTop: 16 }}>
+              <PlanUsage limits={org.limits} />
             </div>
           </Card>
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, Badge, Plate, DirTag } from "@/components/ui-system";
 import { I } from "@/components/Icon";
 import { formatDate } from "@/lib/utils";
+import { useFeature } from "@/components/PlanContext";
 
 type Log = {
   id: string;
@@ -25,6 +26,7 @@ const methodIcon: Record<Log["method"], string> = {
 };
 
 export default function AdminAccess() {
+  const reports = useFeature("REPORTS");
   const [logs, setLogs] = useState<Log[]>([]);
   useEffect(() => {
     fetch("/api/access?limit=200")
@@ -45,10 +47,12 @@ export default function AdminAccess() {
             Trazabilidad completa de ingresos y salidas al campus
           </p>
         </div>
-        <button className="btn ghost" onClick={exportCsv}>
-          <I name="download" size={16} />
-          Exportar CSV
-        </button>
+        {reports && (
+          <button className="btn ghost" onClick={exportCsv}>
+            <I name="download" size={16} />
+            Exportar CSV
+          </button>
+        )}
       </div>
 
       <Card>
