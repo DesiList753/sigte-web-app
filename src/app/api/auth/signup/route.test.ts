@@ -83,7 +83,7 @@ describe("POST /api/auth/signup", () => {
       }),
     });
     expect(tx.user.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ organizationId: "org-new", email: "ana@clinica.cl", role: "ADMIN" }),
+      data: expect.objectContaining({ email: "ana@clinica.cl", lastOrganizationId: "org-new", memberships: { create: { organizationId: "org-new", role: "ADMIN" } } }),
     });
     expect(tx.auditLog.createMany).toHaveBeenCalledWith({
       data: [
@@ -143,7 +143,7 @@ describe("POST /api/auth/signup", () => {
     });
     expect(tx.organization.create).toHaveBeenCalledWith({ data: expect.objectContaining({ planId: "plan_basico" }) });
     expect(tx.user.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ organizationId: "org-new", role: "ADMIN" }),
+      data: expect.objectContaining({ memberships: { create: { organizationId: "org-new", role: "ADMIN" } } }),
     });
   });
 

@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    user: { count: vi.fn().mockResolvedValue(0) },
+    membership: { count: vi.fn().mockResolvedValue(0) },
     parkingBlock: { count: vi.fn().mockResolvedValue(0) },
     vehicle: { count: vi.fn().mockResolvedValue(0) },
   },
@@ -24,12 +24,12 @@ describe("limitBlock", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("deja crear mientras no se llega al tope", async () => {
-    vi.mocked(prisma.user.count).mockResolvedValueOnce(1);
+    vi.mocked(prisma.membership.count).mockResolvedValueOnce(1);
     expect(await limitBlock("org-a", basico, "guards")).toBeNull();
   });
 
   it("bloquea al llegar al tope con un mensaje claro", async () => {
-    vi.mocked(prisma.user.count).mockResolvedValueOnce(2);
+    vi.mocked(prisma.membership.count).mockResolvedValueOnce(2);
     const block = await limitBlock("org-a", basico, "guards");
     expect(block?.message).toBe("Tu plan Básico permite hasta 2 guardias. Contacta a VanillaSoft para ampliarlo.");
     expect(block?.extra).toEqual({ code: "PLAN_LIMIT", limit: "guards", max: 2, used: 2 });
@@ -41,18 +41,18 @@ describe("limitBlock", () => {
   });
 
   it("usa un mensaje distinto para quien se registra solo", async () => {
-    vi.mocked(prisma.user.count).mockResolvedValueOnce(100);
+    vi.mocked(prisma.membership.count).mockResolvedValueOnce(100);
     const block = await limitBlock("org-a", basico, "users", { member: true });
     expect(block?.message).toMatch(/alcanzó el máximo de usuarios/);
   });
 
   it("cuenta solo los registros activos de la propia organización", async () => {
     await limitBlock("org-a", basico, "users");
-    expect(prisma.user.count).toHaveBeenCalledWith({
+    expect(prisma.membership.count).toHaveBeenCalledWith({
       where: { organizationId: "org-a", active: true, role: { in: ["USER", "ADMIN"] } },
     });
     await limitBlock("org-a", basico, "guards");
-    expect(prisma.user.count).toHaveBeenLastCalledWith({
+    expect(prisma.membership.count).toHaveBeenLastCalledWith({
       where: { organizationId: "org-a", active: true, role: "GUARD" },
     });
   });
@@ -67,7 +67,7 @@ describe("limitBlock", () => {
 
 describe("limitUsage", () => {
   it("devuelve uso y máximo de cada límite", async () => {
-    vi.mocked(prisma.user.count).mockResolvedValueOnce(10).mockResolvedValueOnce(1);
+    vi.mocked(prisma.membership.count).mockResolvedValueOnce(10).mockResolvedValueOnce(1);
     vi.mocked(prisma.parkingBlock.count).mockResolvedValueOnce(2);
     vi.mocked(prisma.vehicle.count).mockResolvedValueOnce(30);
     expect(await limitUsage("org-a", basico)).toEqual({

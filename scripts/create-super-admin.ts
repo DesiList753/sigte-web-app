@@ -12,16 +12,19 @@ async function main() {
     throw new Error("Define SUPER_ADMIN_EMAIL y SUPER_ADMIN_PASSWORD (mínimo 12 caracteres).");
   }
 
-  const existing = await prisma.user.findUnique({ where: { email }, select: { role: true } });
-  if (existing && existing.role !== "SUPER_ADMIN") {
+  const existing = await prisma.user.findUnique({
+    where: { email },
+    select: { platformAdmin: true, _count: { select: { memberships: true } } },
+  });
+  if (existing && (!existing.platformAdmin || existing._count.memberships > 0)) {
     throw new Error("Ese correo ya pertenece a un usuario de una organización.");
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.upsert({
     where: { email },
-    update: { passwordHash, name, active: true, failedLoginAttempts: 0, lockedUntil: null },
-    create: { email, passwordHash, name, role: "SUPER_ADMIN" },
+    update: { passwordHash, name, platformAdmin: true, failedLoginAttempts: 0, lockedUntil: null },
+    create: { email, passwordHash, name, platformAdmin: true },
   });
   console.log(`SUPER_ADMIN listo: ${email}`);
 }

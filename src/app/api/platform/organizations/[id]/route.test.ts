@@ -141,15 +141,16 @@ describe("GET /api/platform/organizations/[id]", () => {
   it("devuelve los administradores de la organización", async () => {
     vi.mocked(prisma.organization.findUnique).mockResolvedValueOnce({
       ...current,
-      users: [{ id: "admin-a", name: "Admin A", email: "a@a.cl", active: true }],
+      memberships: [{ active: true, createdAt: new Date(), user: { id: "admin-a", name: "Admin A", email: "a@a.cl" } }],
     } as never);
     const res = await GET(await platformRequest("/api/platform/organizations/org-a"), params({ id: "org-a" }));
     const data = await res.json();
     expect(data.organization.admins).toHaveLength(1);
+    expect(data.organization.admins[0]).toMatchObject({ id: "admin-a", email: "a@a.cl", active: true });
     expect(data.organization.limits.guards).toEqual({ used: 3, max: 2 });
     expect(prisma.organization.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({ users: expect.objectContaining({ where: { role: "ADMIN" } }) }),
+        include: expect.objectContaining({ memberships: expect.objectContaining({ where: { role: "ADMIN" } }) }),
       })
     );
   });

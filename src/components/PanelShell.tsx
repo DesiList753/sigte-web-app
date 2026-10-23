@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { I } from "@/components/Icon";
 import { OrgBrand, ProductBrand } from "@/components/ui-system";
+import { OrgSwitcher, type OrgOption } from "@/components/OrgSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import type { OrganizationBrand } from "@/lib/auth";
 import { orgTheme } from "@/lib/theme";
@@ -54,7 +55,7 @@ function Sidebar({ groups, brand, open, onClose }: { groups: PanelNavGroup[]; br
   );
 }
 
-function TopBar({ title, subtitle, userName, userRole, onBurger }: { title: string; subtitle: string; userName: string; userRole: string; onBurger: () => void }) {
+function TopBar({ title, subtitle, userName, userRole, organizations, currentOrganizationId, onBurger }: { title: string; subtitle: string; userName: string; userRole: string; organizations?: OrgOption[]; currentOrganizationId?: string; onBurger: () => void }) {
   const ini = userName.split(/[\s.]/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
     <header style={{ height: 62, flex: "none", background: "var(--surface)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 16, padding: "0 16px" }}>
@@ -66,6 +67,7 @@ function TopBar({ title, subtitle, userName, userRole, onBurger }: { title: stri
         <div style={{ fontSize: 12, color: "var(--ink-500)", marginTop: 1 }}>{subtitle}</div>
       </div>
       <div style={{ flex: 1 }} />
+      {organizations && currentOrganizationId && <OrgSwitcher options={organizations} current={currentOrganizationId} />}
       <ThemeToggle />
       <div style={{ display: "flex", alignItems: "center", gap: 9, paddingLeft: 6, borderLeft: "1px solid var(--line)" }}>
         <span className="avatar">{ini || "…"}</span>
@@ -78,8 +80,8 @@ function TopBar({ title, subtitle, userName, userRole, onBurger }: { title: stri
   );
 }
 
-export function PanelShell({ groups, title, subtitle, userName, userRole, brand, children }: {
-  groups: PanelNavGroup[]; title: string; subtitle: string; userName: string; userRole: string; brand?: OrganizationBrand; children: ReactNode;
+export function PanelShell({ groups, title, subtitle, userName, userRole, brand, organizations, currentOrganizationId, children }: {
+  groups: PanelNavGroup[]; title: string; subtitle: string; userName: string; userRole: string; brand?: OrganizationBrand; organizations?: OrgOption[]; currentOrganizationId?: string; children: ReactNode;
 }) {
   const [navOpen, setNavOpen] = useState(false);
   const theme = orgTheme(brand?.brandColor);
@@ -88,7 +90,7 @@ export function PanelShell({ groups, title, subtitle, userName, userRole, brand,
       <Sidebar groups={groups} brand={brand} open={navOpen} onClose={() => setNavOpen(false)} />
       {navOpen && <div className="panel-overlay" onClick={() => setNavOpen(false)} />}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <TopBar title={title} subtitle={subtitle} userName={userName} userRole={userRole} onBurger={() => setNavOpen(true)} />
+        <TopBar title={title} subtitle={subtitle} userName={userName} userRole={userRole} organizations={organizations} currentOrganizationId={currentOrganizationId} onBurger={() => setNavOpen(true)} />
         <main style={{ flex: 1, overflowY: "auto", background: "var(--bg)" }}>{children}</main>
       </div>
     </div>

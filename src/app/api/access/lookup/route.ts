@@ -3,12 +3,15 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, planError, withTenant } from "@/lib/api";
 import { featureBlock } from "@/lib/plan";
+import { memberByCredential, ownerSelect, withFlatOwner } from "@/lib/members";
 import { verifyQrToken } from "@/lib/qr";
 
-const include = {
-  owner: { select: { id: true, name: true, email: true, credentialId: true } },
-  currentBlock: true,
-} satisfies Prisma.VehicleInclude;
+function includeFor(organizationId: string) {
+  return {
+    owner: { select: ownerSelect(organizationId) },
+    currentBlock: true,
+  } satisfies Prisma.VehicleInclude;
+}
 
 export const GET = withTenant(
   async (req, { session }) => {
@@ -17,6 +20,7 @@ export const GET = withTenant(
     const qr = url.searchParams.get("qr");
     const uid = url.searchParams.get("uid");
     const organizationId = session.organizationId;
+    const include = includeFor(organizationId);
 
     let vehicle = null;
     if (plate) {
@@ -36,12 +40,10 @@ export const GET = withTenant(
         include,
       });
     } else if (uid) {
-      const owner = await prisma.user.findUnique({
-        where: { organizationId_credentialId: { organizationId, credentialId: uid } },
-      });
-      if (owner) {
+      const member = await memberByCredential(organizationId, uid);
+      if (member) {
         vehicle = await prisma.vehicle.findFirst({
-          where: { ownerId: owner.id, organizationId },
+          where: { ownerId: member.userId, organizationId },
           orderBy: { createdAt: "desc" },
           include,
         });
@@ -56,7 +58,7 @@ export const GET = withTenant(
       ? await prisma.infraction.count({ where: { vehicleId: vehicle.id, status: "OPEN" } })
       : 0;
 
-    return NextResponse.json({ vehicle, openInfractions });
+    return NextResponse.json({ vehicle: withFlatOwner(vehicle), openInfractions });
   },
   { roles: ["GUARD", "ADMIN"] }
 );

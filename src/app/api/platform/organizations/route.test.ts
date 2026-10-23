@@ -74,7 +74,7 @@ describe("POST /api/platform/organizations", () => {
       data: expect.objectContaining({ organizationId: "org-new", name: "No definido", defaultOf: { connect: { id: "org-new" } } }),
     });
     expect(prisma.user.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ organizationId: "org-new", email: "ana@clinica.cl", role: "ADMIN" }),
+      data: expect.objectContaining({ email: "ana@clinica.cl", memberships: { create: { organizationId: "org-new", role: "ADMIN" } } }),
     });
     expect(prisma.auditLog.createMany).toHaveBeenCalledWith({
       data: [

@@ -105,7 +105,8 @@ export function RegisterForm({
   return (
     <>
       <p style={{ color: "var(--ink-500)", fontSize: 13.5, marginBottom: 20, lineHeight: 1.55 }}>
-        Con tu cuenta registras tus vehículos y ves tus accesos en {organizationName}.
+        Con tu cuenta registras tus vehículos y ves tus accesos en {organizationName}. Si ya tienes cuenta en
+        S.I.G.T.E por otra organización, usa el mismo correo y contraseña para unirte.
       </p>
 
       {academic && (

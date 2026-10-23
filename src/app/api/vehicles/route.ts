@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { auditData } from "@/lib/audit";
+import { ownerSelect, withFlatOwner } from "@/lib/members";
 import { limitBlock } from "@/lib/plan";
 
 export const GET = withTenant(async (req, { session }) => {
@@ -35,11 +36,11 @@ export const GET = withTenant(async (req, { session }) => {
     where,
     orderBy: { createdAt: "desc" },
     include: {
-      owner: { select: { id: true, name: true, email: true, role: true, credentialId: true } },
+      owner: { select: ownerSelect(session.organizationId) },
       currentBlock: true,
     },
   });
-  return NextResponse.json({ vehicles });
+  return NextResponse.json({ vehicles: vehicles.map(withFlatOwner) });
 });
 
 const createSchema = z.object({
@@ -59,12 +60,12 @@ export const POST = withTenant(async (req, { session }) => {
 
   let ownerId = session.sub;
   if (session.role === "ADMIN" && data.ownerId) {
-    const owner = await prisma.user.findFirst({
-      where: { id: data.ownerId, organizationId },
-      select: { id: true },
+    const member = await prisma.membership.findUnique({
+      where: { userId_organizationId: { userId: data.ownerId, organizationId } },
+      select: { userId: true },
     });
-    if (!owner) return jsonError(404, "Dueño no encontrado");
-    ownerId = owner.id;
+    if (!member) return jsonError(404, "Dueño no encontrado");
+    ownerId = member.userId;
   }
 
   const plate = data.plate.toUpperCase().replace(/\s+/g, "");

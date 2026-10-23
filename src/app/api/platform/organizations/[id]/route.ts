@@ -25,10 +25,10 @@ export const GET = withPlatform<{ id: string }>(async (_req, { params }) => {
           maxVehicles: true,
         },
       },
-      users: {
+      memberships: {
         where: { role: "ADMIN" },
         orderBy: { createdAt: "asc" },
-        select: { id: true, name: true, email: true, active: true, createdAt: true },
+        select: { active: true, createdAt: true, user: { select: { id: true, name: true, email: true } } },
       },
     },
   });
@@ -38,7 +38,8 @@ export const GET = withPlatform<{ id: string }>(async (_req, { params }) => {
     usageByOrganization(organization.id),
     limitUsage(organization.id, organization.plan),
   ]);
-  const { users: admins, ...rest } = organization;
+  const { memberships, ...rest } = organization;
+  const admins = memberships.map(({ user, ...membership }) => ({ ...user, ...membership }));
   return NextResponse.json({
     organization: { ...rest, admins, usage: usage.get(organization.id), limits },
   });

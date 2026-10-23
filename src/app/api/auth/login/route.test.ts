@@ -32,21 +32,26 @@ function request(email: string, password: string, extra: Record<string, unknown>
 const CORRECT_PASSWORD = "correcta123";
 let correctHash: string;
 
+function membership(organizationId: string, role = "USER", status = "ACTIVE") {
+  return { role, organizationId, organization: { slug: `${organizationId}-slug`, status } };
+}
+
 function user(overrides: Record<string, unknown> = {}) {
   return {
     id: "user-1",
     email: "u@test.cl",
     passwordHash: correctHash,
-    active: true,
-    role: "USER",
     name: "Usuario",
+    platformAdmin: false,
     failedLoginAttempts: 0,
     lockedUntil: null,
-    organizationId: "org-a",
-    organization: { status: "ACTIVE", slug: "org-a-slug" },
+    lastOrganizationId: "org-a",
+    memberships: [membership("org-a")],
     ...overrides,
   } as never;
 }
+
+const platformUser = { platformAdmin: true, lastOrganizationId: null, memberships: [] };
 
 describe("POST /api/auth/login", () => {
   beforeEach(async () => {
@@ -101,16 +106,14 @@ describe("POST /api/auth/login", () => {
   });
 
   it("rechaza el login si la organización está suspendida", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ organization: { status: "SUSPENDED" } }));
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ memberships: [membership("org-a", "USER", "SUSPENDED")] }));
     const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
     expect(res.status).toBe(403);
     expect(await cookieSet()).not.toHaveBeenCalled();
   });
 
   it("permite al SUPER_ADMIN entrar sin organización", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      user({ role: "SUPER_ADMIN", organizationId: null, organization: null })
-    );
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user(platformUser));
     const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
     expect(res.status).toBe(200);
     expect((await res.json()).home).toBe("/platform");
@@ -133,10 +136,54 @@ describe("POST /api/auth/login", () => {
   });
 
   it("el SUPER_ADMIN no entra por el enlace de una organización", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(
-      user({ role: "SUPER_ADMIN", organizationId: null, organization: null })
-    );
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user(platformUser));
     const res = await POST(request("u@test.cl", CORRECT_PASSWORD, { organizationSlug: "org-a-slug" }));
     expect(res.status).toBe(401);
+  });
+
+  it("sin membresías activas no entra aunque la clave sea correcta", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ memberships: [] }));
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
+    expect(res.status).toBe(401);
+    expect(await cookieSet()).not.toHaveBeenCalled();
+  });
+
+  it("solo considera las membresías activas", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user());
+    await POST(request("u@test.cl", CORRECT_PASSWORD));
+    expect(prisma.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ memberships: expect.objectContaining({ where: { active: true } }) }),
+      })
+    );
+  });
+
+  it("con varias organizaciones entra a la última que usó y con el rol que tiene ahí", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(
+      user({ lastOrganizationId: "org-b", memberships: [membership("org-a"), membership("org-b", "GUARD")] })
+    );
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
+    expect((await res.json()).home).toBe("/guard");
+    const [, token] = (await cookieSet()).mock.calls[0];
+    expect(await verifyToken(token as string)).toMatchObject({ organizationId: "org-b", role: "GUARD" });
+  });
+
+  it("por el enlace de una organización entra a esa y la recuerda", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(
+      user({ lastOrganizationId: "org-b", memberships: [membership("org-a", "ADMIN"), membership("org-b")] })
+    );
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD, { organizationSlug: "org-a-slug" }));
+    expect((await res.json()).home).toBe("/admin");
+    expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: "user-1" }, data: { lastOrganizationId: "org-a" } });
+  });
+
+  it("si una organización está suspendida entra a otra activa", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(
+      user({ memberships: [membership("org-a", "USER", "SUSPENDED"), membership("org-b")] })
+    );
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
+    expect(res.status).toBe(200);
+    const [, token] = (await cookieSet()).mock.calls[0];
+    expect((await verifyToken(token as string))?.organizationId).toBe("org-b");
   });
 });

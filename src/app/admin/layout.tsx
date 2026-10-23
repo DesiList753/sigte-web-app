@@ -3,6 +3,7 @@ import { PanelShell, type PanelNavItem } from "@/components/PanelShell";
 import { PlanProvider } from "@/components/PlanContext";
 import { Toaster } from "@/components/ui/sonner";
 import { requireTenantActor } from "@/lib/auth";
+import { organizationOptions } from "@/lib/members";
 
 const items: (PanelNavItem & { feature?: PlanFeature })[] = [
   { href: "/admin", label: "Panel", icon: "dashboard" },
@@ -18,10 +19,11 @@ const items: (PanelNavItem & { feature?: PlanFeature })[] = [
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requireTenantActor(["ADMIN"]);
   const features = session.plan.features;
+  const organizations = await organizationOptions(session.sub);
   const groups = [{ grp: "Administración", items: items.filter((it) => !it.feature || features.includes(it.feature)) }];
   return (
     <PlanProvider features={features}>
-      <PanelShell groups={groups} title="Administración" subtitle="Vista de mando" brand={session.organization} userName={session.name} userRole="Administración">
+      <PanelShell groups={groups} title="Administración" subtitle="Vista de mando" brand={session.organization} organizations={organizations} currentOrganizationId={session.organizationId} userName={session.name} userRole="Administración">
         {children}
       </PanelShell>
       <Toaster richColors position="top-right" />

@@ -12,14 +12,14 @@ vi.mock("@/lib/prisma", async () => {
         count: vi.fn().mockResolvedValue(0),
         create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-vehicle", ...data })),
       },
-      user: { findFirst: vi.fn() },
+      membership: { findUnique: vi.fn() },
     }),
   };
 });
 
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "./route";
-import { ORG_A, ORG_B, auditedIn, onlyInOrg, params, scopedTo, tenantRequest } from "@/test/tenant";
+import { ORG_A, ORG_B, auditedIn, onlyMemberOf, params, scopedTo, tenantRequest } from "@/test/tenant";
 
 async function post(role: "USER" | "ADMIN", body: Record<string, unknown>, sub?: string) {
   const req = await tenantRequest("/api/vehicles", { role, sub }, { method: "POST", body });
@@ -71,7 +71,7 @@ describe("POST /api/vehicles", () => {
   });
 
   it("un ADMIN no puede asignar un dueño de otra organización", async () => {
-    vi.mocked(prisma.user.findFirst).mockImplementation(onlyInOrg(ORG_B, { id: "user-b" }));
+    vi.mocked(prisma.membership.findUnique).mockImplementation(onlyMemberOf(ORG_B, { userId: "user-b" }));
     const res = await post("ADMIN", { plate: "AB1234", ownerId: "user-b" });
     expect(res.status).toBe(404);
     expect(prisma.vehicle.create).not.toHaveBeenCalled();
