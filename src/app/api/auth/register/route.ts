@@ -16,7 +16,7 @@ const targetSchema = z.looseObject({ organizationSlug: z.string().min(1) });
 const baseFields = {
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  password: z.string().min(1),
   phone: z.string().min(6, "Teléfono inválido"),
 };
 
@@ -144,6 +144,8 @@ export async function POST(req: NextRequest) {
     }
     if (existing.memberships.length > 0) return jsonError(409, "Ya perteneces a esta organización. Inicia sesión.");
     if (rut && existing.rut && existing.rut !== rut) return jsonError(409, "El RUT no coincide con el de tu cuenta");
+  } else if (data.password.length < 8) {
+    return jsonError(400, "La contraseña debe tener al menos 8 caracteres");
   }
 
   if (member.credentialId) {

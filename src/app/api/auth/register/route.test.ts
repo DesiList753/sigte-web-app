@@ -179,6 +179,13 @@ describe("POST /api/auth/register", () => {
     expect(member.data).toEqual({ userId: "new-user", organizationId: "org-a", role: "USER" });
   });
 
+  it("una cuenta nueva necesita una contraseña de al menos 8 caracteres", async () => {
+    const res = await POST(request({ ...student, password: "corta1" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/8 caracteres/);
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
   it("con el formulario académico exige el tipo de usuario", async () => {
     const res = await POST(request(basic));
     expect(res.status).toBe(400);
@@ -245,6 +252,13 @@ describe("POST /api/auth/register con una cuenta que ya existe", () => {
     const res = await POST(request(student));
     expect(res.status).toBe(429);
     expect(prisma.membership.create).not.toHaveBeenCalled();
+  });
+
+  it("puede unirse aunque su contraseña sea anterior a la regla de 8 caracteres", async () => {
+    withExisting({ ...(await existingPerson()), passwordHash: await hashPassword("user123") });
+    const res = await POST(request({ ...student, password: "user123" }));
+    expect(res.status).toBe(200);
+    expect(prisma.membership.create).toHaveBeenCalled();
   });
 
   it("la cuenta de VanillaSoft no se une a organizaciones", async () => {

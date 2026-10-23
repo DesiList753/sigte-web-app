@@ -49,7 +49,7 @@ export function RegisterForm({
   const baseOk =
     form.name.trim().length >= 2 &&
     /.+@.+\..+/.test(form.email) &&
-    form.password.length >= 8 &&
+    form.password.length > 0 &&
     form.phone.trim().length >= 6;
 
   const canSubmit =
@@ -272,7 +272,6 @@ export function RegisterForm({
             className="input"
             type="password"
             required
-            minLength={8}
             autoComplete="new-password"
             placeholder="Mínimo 8 caracteres"
             value={form.password}
