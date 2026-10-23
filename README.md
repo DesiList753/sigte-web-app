@@ -258,11 +258,11 @@ pnpm install
 cp .env.example .env
 # Editar .env con los valores correspondientes
 
-# Sincronizar el esquema con la base (Neon) — este proyecto no usa `prisma migrate`
-pnpm db:push
+# Aplicar las migraciones a la base
+pnpm migrate
 
-# Sembrar datos de prueba
-npx tsx prisma/seed.ts
+# Sembrar datos de prueba (organización demo, USM Viña, planes y un SUPER_ADMIN)
+pnpm seed
 
 # Iniciar servidor de desarrollo
 pnpm dev
