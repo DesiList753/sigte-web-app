@@ -34,12 +34,12 @@ export async function createOrganization(
   });
   const admin = await tx.user.create({
     data: {
-      organizationId: organization.id,
       email: input.admin.email,
       passwordHash: input.admin.passwordHash,
       name: input.admin.name,
-      role: "ADMIN",
+      lastOrganizationId: organization.id,
+      memberships: { create: { organizationId: organization.id, role: "ADMIN" } },
     },
   });
-  return { organization, admin };
+  return { organization, admin: { ...admin, role: "ADMIN" as const } };
 }

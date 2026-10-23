@@ -88,7 +88,7 @@ model Organization {
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 
-  users         User[]
+  memberships   Membership[]
   vehicles      Vehicle[]
   blocks        ParkingBlock[] @relation("OrganizationBlocks")
   accessLogs    AccessLog[]
@@ -98,28 +98,20 @@ model Organization {
 }
 
 model User {
-  id                  String        @id @default(cuid())
-  organizationId      String?
-  organization        Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  email               String        @unique
+  id                  String    @id @default(cuid())
+  email               String    @unique
   passwordHash        String
   name                String
-  role                Role          @default(USER)
-  credentialId        String?
-  active              Boolean       @default(true)
-  failedLoginAttempts Int           @default(0)
+  platformAdmin       Boolean   @default(false)
+  phone               String?
+  rut                 String?   @unique
+  lastOrganizationId  String?
+  failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  userType           UserType?
-  phone              String?
-  position           String?
-  department         String?
-  rut                String?
-  academicDepartment String?
-  career             String?
-
+  memberships         Membership[]
   vehicles            Vehicle[]
   notifications       Notification[]
   accessLogs          AccessLog[]          @relation("UserAccess")
@@ -129,10 +121,6 @@ model User {
   resolvedInfractions Infraction[]         @relation("ResolvedInfractions")
   resetTokens         PasswordResetToken[]
   auditLogs           AuditLog[]
-
-  @@unique([organizationId, credentialId])
-  @@unique([organizationId, rut])
-  @@index([organizationId, role])
 }
 
 model PasswordResetToken {
@@ -145,6 +133,28 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+model Membership {
+  id                 String       @id @default(cuid())
+  userId             String
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  role               Role
+  active             Boolean      @default(true)
+  credentialId       String?
+  userType           UserType?
+  position           String?
+  department         String?
+  academicDepartment String?
+  career             String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@unique([userId, organizationId])
+  @@unique([organizationId, credentialId])
+  @@index([organizationId, role])
 }
 
 model Vehicle {

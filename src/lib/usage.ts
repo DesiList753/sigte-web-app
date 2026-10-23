@@ -15,9 +15,9 @@ const EMPTY: Usage = { users: 0, guards: 0, admins: 0, blocks: 0, vehicles: 0, a
 export async function usageByOrganization(organizationId?: string) {
   const scope = organizationId ? { organizationId } : {};
   const [users, vehicles, blocks, accesses] = await Promise.all([
-    prisma.user.groupBy({
+    prisma.membership.groupBy({
       by: ["organizationId", "role"],
-      where: organizationId ? { organizationId } : { organizationId: { not: null } },
+      where: scope,
       _count: { _all: true },
     }),
     prisma.vehicle.groupBy({ by: ["organizationId"], where: scope, _count: { _all: true } }),
@@ -36,7 +36,6 @@ export async function usageByOrganization(organizationId?: string) {
   };
 
   for (const row of users) {
-    if (!row.organizationId) continue;
     const u = get(row.organizationId);
     if (row.role === "USER") u.users = row._count._all;
     if (row.role === "GUARD") u.guards = row._count._all;

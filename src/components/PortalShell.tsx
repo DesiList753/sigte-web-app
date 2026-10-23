@@ -4,13 +4,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode } from "react";
 import { I } from "@/components/Icon";
 import { OrgBrand } from "@/components/ui-system";
+import { OrgSwitcher, type OrgOption } from "@/components/OrgSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import type { OrganizationBrand } from "@/lib/auth";
 import { orgTheme } from "@/lib/theme";
 
 export interface PortalTab { href: string; label: string; icon: string; }
 
-export function PortalShell({ tabs, userName, brand, children }: { tabs: PortalTab[]; userName: string; brand: OrganizationBrand; children: ReactNode }) {
+export function PortalShell({ tabs, userName, brand, organizations, currentOrganizationId, children }: { tabs: PortalTab[]; userName: string; brand: OrganizationBrand; organizations: OrgOption[]; currentOrganizationId: string; children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const ini = userName.split(/[\s.]/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -30,6 +31,7 @@ export function PortalShell({ tabs, userName, brand, children }: { tabs: PortalT
             <OrgBrand name={brand.displayName} legalName={brand.name} logoUrl={brand.logoUrl} />
           </Link>
           <div style={{ flex: 1 }} />
+          <OrgSwitcher options={organizations} current={currentOrganizationId} />
           <ThemeToggle />
           <span className="avatar">{ini || "…"}</span>
           <button className="btn ghost icon" onClick={logout} title="Cerrar sesión"><I name="logout" size={18} /></button>

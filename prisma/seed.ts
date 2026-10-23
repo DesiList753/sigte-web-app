@@ -202,6 +202,7 @@ const VALPARAISO: OrgDef = {
     { email: "docente.valparaiso@usm.cl", password: "user123", name: "Gonzalo Tapia Reyes", role: "USER", credentialId: "FUN-1001", userType: "STAFF", phone: "+56 9 5100 0003", position: "Docente", department: "Depto. de Matemática" },
     { email: "alumna.valparaiso@sansano.usm.cl", password: "user123", name: "Fernanda Díaz Castro", role: "USER", credentialId: "USR-1001", userType: "STUDENT", phone: "+56 9 5100 0004", rut: "21.456.788-1", academicDepartment: INFO, career: "Ingeniería Civil Informática" },
     { email: "alumno.valparaiso@sansano.usm.cl", password: "user123", name: "Tomás Herrera Lagos", role: "USER", credentialId: "USR-1002", userType: "STUDENT", phone: "+56 9 5100 0005", rut: "20.987.651-5", academicDepartment: "Depto. de Electrónica", career: "Ingeniería Civil Electrónica" },
+    { email: "fernando@usm.cl", password: "user123", name: "Fernando Ortega Campos", role: "USER", credentialId: "FUN-1013", userType: "STAFF", phone: "+56 9 7111 2013", position: "Docente", department: INFO },
   ],
   vehicles: [
     { plate: "RRSS11", make: "Toyota", model: "Yaris", color: "Blanco", owner: "alumna.valparaiso@sansano.usm.cl", authorized: true, block: "Estacionamiento Principal" },
@@ -241,16 +242,18 @@ async function hash(password: string) {
   return bcrypt.hash(process.env.SEED_PASSWORD ?? password, 10);
 }
 
-function profile(u: UserDef) {
+function person(u: UserDef) {
+  return { name: u.name, phone: u.phone ?? null, rut: u.rut ?? null };
+}
+
+function membershipOf(u: UserDef) {
   return {
-    name: u.name,
     role: u.role,
+    active: true,
     credentialId: u.credentialId ?? null,
     userType: u.userType ?? null,
-    phone: u.phone ?? null,
     position: u.position ?? null,
     department: u.department ?? null,
-    rut: u.rut ?? null,
     academicDepartment: u.academicDepartment ?? null,
     career: u.career ?? null,
   };
@@ -270,7 +273,7 @@ async function seedPlans() {
 }
 
 async function seedSuperAdmin() {
-  const data = { ...profile(SUPER_ADMIN), passwordHash: await hash(SUPER_ADMIN.password), organizationId: null };
+  const data = { ...person(SUPER_ADMIN), passwordHash: await hash(SUPER_ADMIN.password), platformAdmin: true };
   await prisma.user.upsert({
     where: { email: SUPER_ADMIN.email },
     update: data,
@@ -311,11 +314,17 @@ async function seedOrganization(def: OrgDef, planIds: Record<string, string>) {
 
   const userIds: Record<string, string> = {};
   for (const u of def.users) {
-    const data = { ...profile(u), passwordHash: await hash(u.password), organizationId: org.id };
+    const data = { ...person(u), passwordHash: await hash(u.password) };
     const user = await prisma.user.upsert({
       where: { email: u.email },
       update: data,
-      create: { email: u.email, ...data },
+      create: { email: u.email, ...data, lastOrganizationId: org.id },
+    });
+    const membership = membershipOf(u);
+    await prisma.membership.upsert({
+      where: { userId_organizationId: { userId: user.id, organizationId: org.id } },
+      update: membership,
+      create: { userId: user.id, organizationId: org.id, ...membership },
     });
     userIds[u.email] = user.id;
   }

@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, homePath, setSessionCookie } from "@/lib/auth";
+import { hashPassword, homePath, setSessionCookie, verifyPassword } from "@/lib/auth";
 import { signToken } from "@/lib/jwt";
 import { jsonError, parseJson, planError, validate } from "@/lib/api";
 import { auditData } from "@/lib/audit";
+import { LOCK_MS, isLocked, minutesRemaining, shouldLock } from "@/lib/loginPolicy";
+import { memberByCredential } from "@/lib/members";
 import { limitBlock } from "@/lib/plan";
 import { formatRut, isValidRut } from "@/lib/rut";
 
@@ -14,7 +16,7 @@ const targetSchema = z.looseObject({ organizationSlug: z.string().min(1) });
 const baseFields = {
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  password: z.string().min(1),
   phone: z.string().min(6, "Teléfono inválido"),
 };
 
@@ -41,23 +43,28 @@ const academicSchema = z.discriminatedUnion("userType", [staffSchema, studentSch
 
 type Registration = z.infer<typeof basicSchema> | z.infer<typeof academicSchema>;
 
-type Profile = Pick<
-  Prisma.UserUncheckedCreateInput,
-  "userType" | "credentialId" | "rut" | "position" | "department" | "academicDepartment" | "career"
+type MemberProfile = Pick<
+  Prisma.MembershipUncheckedCreateInput,
+  "userType" | "credentialId" | "position" | "department" | "academicDepartment" | "career"
 >;
 
-function profileOf(data: Registration): Profile {
-  if (!("userType" in data)) return {};
+function profileOf(data: Registration): { member: MemberProfile; rut: string | null } {
+  if (!("userType" in data)) return { member: {}, rut: null };
   const credentialId = data.credentialId || null;
   if (data.userType === "STAFF") {
-    return { userType: "STAFF", credentialId, position: data.position, department: data.department };
+    return {
+      member: { userType: "STAFF", credentialId, position: data.position, department: data.department },
+      rut: null,
+    };
   }
   return {
-    userType: "STUDENT",
-    credentialId,
+    member: {
+      userType: "STUDENT",
+      credentialId,
+      academicDepartment: data.academicDepartment,
+      career: data.career,
+    },
     rut: formatRut(data.rut),
-    academicDepartment: data.academicDepartment,
-    career: data.career,
   };
 }
 
@@ -99,57 +106,99 @@ export async function POST(req: NextRequest) {
     return jsonError(400, `Usa un correo de ${org.allowedEmailDomains.join(", ")}`);
   }
 
-  const existing = await prisma.user.findUnique({ where: { email: emailLower } });
-  if (existing) return jsonError(409, "El email ya está registrado");
+  const { member, rut } = profileOf(data);
+  const existing = await prisma.user.findUnique({
+    where: { email: emailLower },
+    select: {
+      id: true,
+      passwordHash: true,
+      platformAdmin: true,
+      rut: true,
+      failedLoginAttempts: true,
+      lockedUntil: true,
+      memberships: { where: { organizationId: org.id }, select: { id: true } },
+    },
+  });
 
-  const profile = profileOf(data);
-  if (profile.credentialId) {
-    const collision = await prisma.user.findUnique({
-      where: { organizationId_credentialId: { organizationId: org.id, credentialId: profile.credentialId } },
-    });
+  if (existing) {
+    if (existing.platformAdmin) return jsonError(409, "El email ya está registrado");
+    if (isLocked(existing.lockedUntil)) {
+      return jsonError(
+        429,
+        `Demasiados intentos fallidos. Intenta de nuevo en ${minutesRemaining(existing.lockedUntil!)} minuto(s).`
+      );
+    }
+    if (!(await verifyPassword(data.password, existing.passwordHash))) {
+      const attempts = existing.failedLoginAttempts + 1;
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: shouldLock(attempts)
+          ? { failedLoginAttempts: 0, lockedUntil: new Date(Date.now() + LOCK_MS) }
+          : { failedLoginAttempts: attempts },
+      });
+      return jsonError(
+        409,
+        "Ese correo ya tiene cuenta en S.I.G.T.E. Escribe tu contraseña actual para unirte a esta organización.",
+        { code: "ACCOUNT_EXISTS" }
+      );
+    }
+    if (existing.memberships.length > 0) return jsonError(409, "Ya perteneces a esta organización. Inicia sesión.");
+    if (rut && existing.rut && existing.rut !== rut) return jsonError(409, "El RUT no coincide con el de tu cuenta");
+  } else if (data.password.length < 8) {
+    return jsonError(400, "La contraseña debe tener al menos 8 caracteres");
+  }
+
+  if (member.credentialId) {
+    const collision = await memberByCredential(org.id, member.credentialId);
     if (collision) return jsonError(409, "La credencial ya existe");
   }
 
-  if (profile.rut) {
-    const rutCollision = await prisma.user.findUnique({
-      where: { organizationId_rut: { organizationId: org.id, rut: profile.rut } },
-    });
+  const setsRut = !!rut && !existing?.rut;
+  if (setsRut) {
+    const rutCollision = await prisma.user.findUnique({ where: { rut: rut! }, select: { id: true } });
     if (rutCollision) return jsonError(409, "El RUT ya está registrado");
   }
 
   const limited = await limitBlock(org.id, org.plan, "users", { member: true });
   if (limited) return planError(limited);
 
-  const passwordHash = await hashPassword(data.password);
+  const passwordHash = existing ? null : await hashPassword(data.password);
   const user = await prisma.$transaction(async (tx) => {
-    const created = await tx.user.create({
-      data: {
-        organizationId: org.id,
-        email: emailLower,
-        passwordHash,
-        name: data.name,
-        role: "USER",
-        phone: data.phone,
-        ...profile,
-      },
-    });
+    const person = existing
+      ? await tx.user.update({
+          where: { id: existing.id },
+          data: { lastOrganizationId: org.id, failedLoginAttempts: 0, lockedUntil: null, ...(setsRut ? { rut } : {}) },
+          select: { id: true, email: true, name: true },
+        })
+      : await tx.user.create({
+          data: {
+            email: emailLower,
+            passwordHash: passwordHash!,
+            name: data.name,
+            phone: data.phone,
+            rut,
+            lastOrganizationId: org.id,
+          },
+          select: { id: true, email: true, name: true },
+        });
+    await tx.membership.create({ data: { userId: person.id, organizationId: org.id, role: "USER", ...member } });
     await tx.auditLog.create({
       data: auditData({
         organizationId: org.id,
-        actor: { sub: created.id, name: created.name },
+        actor: { sub: person.id, name: person.name },
         action: "CREATE",
         entity: "USER",
-        entityId: created.id,
-        detail: { email: created.email, role: created.role },
+        entityId: person.id,
+        detail: { email: person.email, role: "USER" },
       }),
     });
-    return created;
+    return person;
   });
 
   const token = await signToken({
     sub: user.id,
     email: user.email,
-    role: user.role,
+    role: "USER",
     name: user.name,
     organizationId: org.id,
   });
@@ -159,8 +208,9 @@ export async function POST(req: NextRequest) {
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role,
+    role: "USER",
     organizationId: org.id,
-    home: homePath(user.role),
+    joined: !!existing,
+    home: homePath("USER"),
   });
 }

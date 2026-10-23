@@ -93,6 +93,11 @@ export function onlyInOrg<T>(organizationId: string, record: T) {
     args?.where?.organizationId === organizationId ? record : null) as never;
 }
 
+export function onlyMemberOf<T>(organizationId: string, record: T) {
+  return (async (args?: { where?: { userId_organizationId?: { organizationId?: string } } }) =>
+    args?.where?.userId_organizationId?.organizationId === organizationId ? record : null) as never;
+}
+
 export function scopedTo(organizationId: string) {
   return expect.objectContaining({ where: expect.objectContaining({ organizationId }) });
 }

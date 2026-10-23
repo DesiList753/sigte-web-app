@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { memberByCredential } from "@/lib/members";
 import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { featureBlock } from "@/lib/plan";
 import { verifyQrToken } from "@/lib/qr";
@@ -86,12 +87,10 @@ export const POST = withTenant(
       }
       vehicle = await prisma.vehicle.findFirst({ where: { id: verified.vehicleId, organizationId } });
     } else if (body.credentialId) {
-      const owner = await prisma.user.findUnique({
-        where: { organizationId_credentialId: { organizationId, credentialId: body.credentialId } },
-      });
-      if (owner) {
+      const member = await memberByCredential(organizationId, body.credentialId);
+      if (member) {
         vehicle = await prisma.vehicle.findFirst({
-          where: { ownerId: owner.id, organizationId },
+          where: { ownerId: member.userId, organizationId },
           orderBy: { createdAt: "desc" },
         });
       }

@@ -6,7 +6,7 @@ vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     vehicle: { findUnique: vi.fn(), findFirst: vi.fn() },
-    user: { findUnique: vi.fn() },
+    membership: { findUnique: vi.fn() },
     infraction: { count: vi.fn().mockResolvedValue(0) },
   },
 }));
@@ -49,7 +49,11 @@ describe("GET /api/access/lookup", () => {
   });
 
   it("sin infracciones en el plan no cuenta infracciones abiertas", async () => {
-    vi.mocked(prisma.vehicle.findUnique).mockResolvedValue({ id: "v-a", plate: "AA1111" } as never);
+    vi.mocked(prisma.vehicle.findUnique).mockResolvedValue({
+      id: "v-a",
+      plate: "AA1111",
+      owner: { id: "u-a", name: "Dueña", email: "d@test.cl", memberships: [] },
+    } as never);
     const req = await tenantRequest("/api/access/lookup?plate=AA1111", {
       role: "GUARD",
       plan: { name: "Básico", features: ["QR"] },
@@ -60,11 +64,26 @@ describe("GET /api/access/lookup", () => {
   });
 
   it("busca la credencial dentro de la organización de la sesión", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.membership.findUnique).mockResolvedValue(null);
     await lookup("uid=USR-0001");
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+    expect(prisma.membership.findUnique).toHaveBeenCalledWith({
       where: { organizationId_credentialId: { organizationId: ORG_A, credentialId: "USR-0001" } },
+      select: { userId: true },
     });
+  });
+
+  it("muestra la credencial y el rol del dueño solo en esta organización", async () => {
+    vi.mocked(prisma.vehicle.findUnique).mockResolvedValue({
+      id: "v-a",
+      plate: "AA1111",
+      owner: { id: "u-a", name: "Dueña", email: "d@test.cl", memberships: [{ role: "USER", credentialId: "C-A" }] },
+    } as never);
+    const body = await (await lookup("plate=AA1111")).json();
+    expect(body.vehicle.owner).toEqual({ id: "u-a", name: "Dueña", email: "d@test.cl", role: "USER", credentialId: "C-A" });
+    const args = vi.mocked(prisma.vehicle.findUnique).mock.calls[0][0] as {
+      include: { owner: { select: { memberships: { where: unknown } } } };
+    };
+    expect(args.include.owner.select.memberships.where).toEqual({ organizationId: ORG_A });
   });
 
   it("rechaza a un USER", async () => {

@@ -84,14 +84,8 @@ export async function getSessionFromRequest(
 
 export async function resolveActor(session: SessionPayload | null) {
   if (!session) return null;
-  const actor = await loadActor(session.sub);
-  if (
-    !actor?.active ||
-    actor.role !== session.role ||
-    actor.organizationId !== session.organizationId
-  ) {
-    return null;
-  }
+  const actor = await loadActor(session.sub, session.organizationId);
+  if (!actor?.active || actor.role !== session.role) return null;
   return actor;
 }
 

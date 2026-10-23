@@ -49,7 +49,7 @@ export function RegisterForm({
   const baseOk =
     form.name.trim().length >= 2 &&
     /.+@.+\..+/.test(form.email) &&
-    form.password.length >= 8 &&
+    form.password.length > 0 &&
     form.phone.trim().length >= 6;
 
   const canSubmit =
@@ -105,7 +105,8 @@ export function RegisterForm({
   return (
     <>
       <p style={{ color: "var(--ink-500)", fontSize: 13.5, marginBottom: 20, lineHeight: 1.55 }}>
-        Con tu cuenta registras tus vehículos y ves tus accesos en {organizationName}.
+        Con tu cuenta registras tus vehículos y ves tus accesos en {organizationName}. Si ya tienes cuenta en
+        S.I.G.T.E por otra organización, usa el mismo correo y contraseña para unirte.
       </p>
 
       {academic && (
@@ -271,7 +272,6 @@ export function RegisterForm({
             className="input"
             type="password"
             required
-            minLength={8}
             autoComplete="new-password"
             placeholder="Mínimo 8 caracteres"
             value={form.password}

@@ -42,10 +42,10 @@ export function limitKindFor(role: Role): LimitKind {
 
 export function countUsage(organizationId: string, kind: LimitKind) {
   if (kind === "users") {
-    return prisma.user.count({ where: { organizationId, active: true, role: { in: ["USER", "ADMIN"] } } });
+    return prisma.membership.count({ where: { organizationId, active: true, role: { in: ["USER", "ADMIN"] } } });
   }
   if (kind === "guards") {
-    return prisma.user.count({ where: { organizationId, active: true, role: "GUARD" } });
+    return prisma.membership.count({ where: { organizationId, active: true, role: "GUARD" } });
   }
   if (kind === "blocks") {
     return prisma.parkingBlock.count({ where: { organizationId, defaultOf: { is: null } } });

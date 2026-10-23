@@ -4,7 +4,7 @@ vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    user: { count: vi.fn().mockResolvedValue(0) },
+    membership: { count: vi.fn().mockResolvedValue(0) },
     vehicle: { count: vi.fn().mockResolvedValue(0), findMany: vi.fn().mockResolvedValue([]) },
     parkingBlock: { count: vi.fn().mockResolvedValue(0), findMany: vi.fn().mockResolvedValue([]) },
     accessLog: {
@@ -23,7 +23,7 @@ import { ORG_A, params, tenantRequest } from "@/test/tenant";
 
 function allCalls() {
   return [
-    prisma.user.count,
+    prisma.membership.count,
     prisma.vehicle.count,
     prisma.vehicle.findMany,
     prisma.parkingBlock.count,

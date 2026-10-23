@@ -17,6 +17,15 @@ Cada organización tiene además:
 - Su **marca**: nombre visible, logo y color. El admin la cambia en **Configuración**.
 - Sus **reglas de registro**: formulario básico o académico, registro abierto o cerrado y dominios de correo permitidos.
 
+### Personas y organizaciones
+
+Cada persona tiene una sola cuenta, identificada por su correo. Esa cuenta puede pertenecer a varias organizaciones, con un rol distinto en cada una. Por ejemplo, un docente puede ser conductor en Viña y guardia en Valparaíso.
+
+- Si una persona ya tiene cuenta y se registra en otra organización, se une usando el mismo correo y la misma contraseña.
+- Desde el panel puede cambiar de organización sin cerrar sesión. Al entrar, vuelve a la última que usó.
+- Cuando el admin quita a alguien de su organización, la cuenta de esa persona no se borra.
+- El rol, la credencial y los datos académicos son propios de cada organización. El nombre, el teléfono y el RUT son de la persona.
+
 ### Roles
 
 | Rol | Qué hace | Panel |
@@ -81,6 +90,7 @@ Las crea `pnpm seed`. Solo sirven en desarrollo; el seed no corre en producción
 | USM Campus Valparaíso | Administración | `admin.valparaiso@usm.cl` | `admin123` |
 | USM Campus Valparaíso | Guardia | `guardia.valparaiso@usm.cl` | `guard123` |
 | USM Campus Valparaíso | Conductor | `alumna.valparaiso@sansano.usm.cl` | `user123` |
+| Viña y Valparaíso | Docente en las dos sedes | `fernando@usm.cl` | `user123` |
 
 Las dos sedes USM solo aceptan registros con correo `usm.cl` (incluye subdominios como `sansano.usm.cl`).
 
@@ -100,6 +110,15 @@ Las dos sedes USM solo aceptan registros con correo `usm.cl` (incluye subdominio
    ```bash
    SUPER_ADMIN_EMAIL="correo@dominio.cl" SUPER_ADMIN_PASSWORD="contraseña-larga" pnpm platform:admin
    ```
+
+---
+
+## Próximas ideas
+
+- **Registro común:** crear una cuenta de S.I.G.T.E sin organización y unirse a organizaciones después.
+- **Vehículos de la persona:** la persona registra sus vehículos una vez y autoriza a cada organización a verlos. Cada organización decide qué vehículos tienen permiso de ingreso. La base de producción ya tiene las columnas de "permiso" que trajo la PR #5 de S.I.G.T.E-WEB.
+- **Versiones /v1, /v2 y /v3:** mostrar la evolución del sistema con planes ocultos y organizaciones de ejemplo.
+- **Correos de recuperación:** configurar `RESEND_FROM_EMAIL` con un dominio verificado en Resend.
 
 ---
 
