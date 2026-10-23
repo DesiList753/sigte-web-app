@@ -209,10 +209,10 @@ code,.mono{font-family:var(--ff-mono)}
 .card-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);margin-bottom:var(--sp-4)}
 .card-title{font-family:var(--ff-display);font-weight:700;font-size:17px;color:var(--ink-900)}
 
-.callout{border-left:4px solid var(--accent);background:var(--accent-050);padding:var(--sp-4) var(--sp-5);border-radius:0 var(--r-md) var(--r-md) 0}
-.callout.warn{border-color:var(--wait);background:var(--wait-050)}
-.callout.danger{border-color:var(--no);background:var(--no-050)}
-.callout.ok{border-color:var(--ok);background:var(--ok-050)}
+.callout{border:1px solid var(--accent-100);background:var(--accent-050);padding:var(--sp-4) var(--sp-5);border-radius:var(--r-md)}
+.callout.warn{border-color:color-mix(in srgb,var(--wait) 45%,var(--surface));background:var(--wait-050)}
+.callout.danger{border-color:color-mix(in srgb,var(--no) 35%,var(--surface));background:var(--no-050)}
+.callout.ok{border-color:color-mix(in srgb,var(--ok) 35%,var(--surface));background:var(--ok-050)}
 
 /* ============================================================
    MÉTRICAS

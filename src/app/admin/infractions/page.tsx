@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plate, Badge } from "@/components/ui-system";
 import { I } from "@/components/Icon";
-import type { Estado } from "@/lib/design-data";
+import { INFRACTION_TYPE_LABEL, type Estado } from "@/lib/design-data";
 import { formatDate } from "@/lib/utils";
 
 type Infraction = {
@@ -102,7 +102,7 @@ export default function AdminInfractions() {
                 <td>
                   <Plate size="sm">{i.vehicle.plate}</Plate>
                 </td>
-                <td>{i.type}</td>
+                <td>{INFRACTION_TYPE_LABEL[i.type] ?? i.type}</td>
                 <td className="muted" style={{ maxWidth: 280 }}>
                   {i.description}
                 </td>

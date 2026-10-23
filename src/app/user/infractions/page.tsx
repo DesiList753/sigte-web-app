@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, Plate, Badge } from "@/components/ui-system";
 import { I } from "@/components/Icon";
+import { INFRACTION_TYPE_LABEL } from "@/lib/design-data";
 import { formatDate } from "@/lib/utils";
 
 type Infraction = {
@@ -70,7 +71,8 @@ export default function UserInfractions() {
         <div className="callout warn row" style={{ gap: 10 }}>
           <I name="shieldAlert" size={18} />
           <span>
-            Tienes {openCount} {openCount === 1 ? "infracción abierta" : "infracciones abiertas"} que requieren tu atención.
+            Tienes {openCount}{" "}
+            {openCount === 1 ? "infracción abierta que requiere" : "infracciones abiertas que requieren"} tu atención.
           </span>
         </div>
       )}
@@ -98,7 +100,7 @@ export default function UserInfractions() {
                   <div className="row" style={{ gap: 8, alignItems: "center" }}>
                     <Plate size="sm">{i.vehicle.plate}</Plate>
                     <span className="muted">·</span>
-                    <strong>{i.type}</strong>
+                    <strong>{INFRACTION_TYPE_LABEL[i.type] ?? i.type}</strong>
                   </div>
                   <p style={{ marginTop: 6 }}>{i.description}</p>
                   <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>

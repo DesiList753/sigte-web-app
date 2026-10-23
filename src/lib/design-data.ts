@@ -37,3 +37,13 @@ export function lotLevel(ocup: number, cap: number): Pick<Lot, "pct" | "estado" 
   if (pct > 50) return { pct, estado: "Casi lleno", level: "mid" };
   return { pct, estado: "Disponible", level: "low" };
 }
+
+export const INFRACTION_TYPE_LABEL: Record<string, string> = {
+  WRONG_BLOCK: "Estacionado en bloque equivocado",
+  UNAUTHORIZED_ENTRY: "Ingreso no autorizado",
+  DOUBLE_PARKING: "Doble fila",
+  EXPIRED_PERMIT: "Permiso expirado",
+  BLOCKING_ACCESS: "Bloqueando accesos",
+  SPEEDING: "Exceso de velocidad",
+  OTHER: "Otra",
+};
