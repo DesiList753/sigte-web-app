@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import { jsonError, parseJson, withAuth } from "@/lib/api";
-import type { Prisma } from "@prisma/client";
+import { jsonError, parseJson, withTenant } from "@/lib/api";
 
-/**
- * GET /api/users (solo ADMIN)
- *  - q: texto libre → matchea nombre, correo, RUT o credencial universitaria.
- *    Lo usa el buscador de dueño al registrar un vehículo.
- */
-export const GET = withAuth(
-  async (req) => {
+export const GET = withTenant(
+  async (req, { session }) => {
     const q = new URL(req.url).searchParams.get("q")?.trim();
 
-    const where: Prisma.UserWhereInput = {};
+    const where: Prisma.UserWhereInput = { organizationId: session.organizationId };
     if (q) {
       where.OR = [
         { name: { contains: q, mode: "insensitive" } },
@@ -59,19 +54,27 @@ const createSchema = z.object({
   universityId: z.string().optional(),
 });
 
-export const POST = withAuth(
-  async (req) => {
+export const POST = withTenant(
+  async (req, { session }) => {
     const parsed = await parseJson(req, createSchema);
     if (!parsed.ok) return parsed.response;
     const { email, password, name, role, universityId } = parsed.data;
     const emailLower = email.toLowerCase();
+    const organizationId = session.organizationId;
 
     const exists = await prisma.user.findUnique({ where: { email: emailLower } });
     if (exists) return jsonError(409, "Email ya existe");
 
+    if (universityId) {
+      const collision = await prisma.user.findUnique({
+        where: { organizationId_universityId: { organizationId, universityId } },
+      });
+      if (collision) return jsonError(409, "La credencial ya existe en tu organización");
+    }
+
     const passwordHash = await hashPassword(password);
     const user = await prisma.user.create({
-      data: { email: emailLower, passwordHash, name, role, universityId: universityId || null },
+      data: { organizationId, email: emailLower, passwordHash, name, role, universityId: universityId || null },
       select: { id: true, email: true, name: true, role: true, universityId: true, active: true },
     });
     return NextResponse.json({ user }, { status: 201 });

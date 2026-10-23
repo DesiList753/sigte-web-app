@@ -1,35 +1,33 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { parseJson, withAuth } from "@/lib/api";
+import { jsonError, parseJson, withTenant } from "@/lib/api";
 
-/**
- * GET /api/parking — lista bloques con ocupación + totales generales.
- *
- * Respuesta:
- *   blocks: [{ id, name, description, capacity, occupied, free, isDefault }]
- *   totals: { inside, capacity, free, defaultBlockId }
- */
-export const GET = withAuth(async () => {
-  const [blocks, insideCount, capacityAgg] = await Promise.all([
+export const GET = withTenant(async (_req, { session }) => {
+  const organizationId = session.organizationId;
+  const [org, blocks, insideCount] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: organizationId }, select: { defaultBlockId: true } }),
     prisma.parkingBlock.findMany({
-      orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+      where: { organizationId },
+      orderBy: { name: "asc" },
       include: { _count: { select: { vehicles: true } } },
     }),
-    prisma.vehicle.count({ where: { currentBlockId: { not: null } } }),
-    prisma.parkingBlock.aggregate({ _sum: { capacity: true } }),
+    prisma.vehicle.count({ where: { organizationId, currentBlockId: { not: null } } }),
   ]);
 
-  const defaultBlock = blocks.find((b) => b.isDefault);
-  const totalCapacity = capacityAgg._sum.capacity ?? 0;
+  const defaultBlockId = org?.defaultBlockId ?? null;
+  const totalCapacity = blocks.reduce((sum, b) => sum + b.capacity, 0);
+  const ordered = [...blocks].sort(
+    (a, b) => Number(b.id === defaultBlockId) - Number(a.id === defaultBlockId)
+  );
 
   return NextResponse.json({
-    blocks: blocks.map((b) => ({
+    blocks: ordered.map((b) => ({
       id: b.id,
       name: b.name,
       description: b.description,
       capacity: b.capacity,
-      isDefault: b.isDefault,
+      isDefault: b.id === defaultBlockId,
       occupied: b._count.vehicles,
       free: Math.max(0, b.capacity - b._count.vehicles),
     })),
@@ -37,7 +35,7 @@ export const GET = withAuth(async () => {
       inside: insideCount,
       capacity: totalCapacity,
       free: Math.max(0, totalCapacity - insideCount),
-      defaultBlockId: defaultBlock?.id ?? null,
+      defaultBlockId,
     },
   });
 });
@@ -49,20 +47,26 @@ const createSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
-export const POST = withAuth(
-  async (req) => {
+export const POST = withTenant(
+  async (req, { session }) => {
     const parsed = await parseJson(req, createSchema);
     if (!parsed.ok) return parsed.response;
+    const { isDefault, ...data } = parsed.data;
+    const organizationId = session.organizationId;
 
-    // Si se crea como default, desmarcar cualquier otro
-    if (parsed.data.isDefault) {
-      await prisma.parkingBlock.updateMany({
-        where: { isDefault: true },
-        data: { isDefault: false },
-      });
-    }
-    const block = await prisma.parkingBlock.create({ data: parsed.data });
-    return NextResponse.json({ block }, { status: 201 });
+    const existing = await prisma.parkingBlock.findUnique({
+      where: { organizationId_name: { organizationId, name: data.name } },
+    });
+    if (existing) return jsonError(409, "Ya existe un bloque con ese nombre");
+
+    const block = await prisma.parkingBlock.create({
+      data: {
+        ...data,
+        organizationId,
+        ...(isDefault ? { defaultOf: { connect: { id: organizationId } } } : {}),
+      },
+    });
+    return NextResponse.json({ block: { ...block, isDefault: Boolean(isDefault) } }, { status: 201 });
   },
   { roles: ["ADMIN"] }
 );

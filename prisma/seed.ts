@@ -288,20 +288,17 @@ async function seedOrganization(def: OrgDef, planIds: Record<string, string>) {
 
   const blockIds: Record<string, string> = {};
   for (const b of [def.defaultBlock, ...def.blocks]) {
-    const isDefault = b === def.defaultBlock;
     const block = await prisma.parkingBlock.upsert({
       where: { organizationId_name: { organizationId: org.id, name: b.name } },
-      update: { capacity: b.capacity, description: b.description, isDefault },
-      create: { organizationId: org.id, name: b.name, capacity: b.capacity, description: b.description, isDefault },
+      update: { capacity: b.capacity, description: b.description },
+      create: { organizationId: org.id, name: b.name, capacity: b.capacity, description: b.description },
     });
     blockIds[b.name] = block.id;
   }
-  const defaultBlockId = blockIds[def.defaultBlock.name];
-  await prisma.parkingBlock.updateMany({
-    where: { organizationId: org.id, isDefault: true, NOT: { id: defaultBlockId } },
-    data: { isDefault: false },
+  await prisma.organization.update({
+    where: { id: org.id },
+    data: { defaultBlockId: blockIds[def.defaultBlock.name] },
   });
-  await prisma.organization.update({ where: { id: org.id }, data: { defaultBlockId } });
 
   const userIds: Record<string, string> = {};
   for (const u of def.users) {
@@ -324,12 +321,11 @@ async function seedOrganization(def: OrgDef, planIds: Record<string, string>) {
       ownerId: userIds[v.owner],
       authorized: v.authorized,
       currentBlockId: blockId,
-      organizationId: org.id,
     };
     const vehicle = await prisma.vehicle.upsert({
-      where: { plate: v.plate },
+      where: { organizationId_plate: { organizationId: org.id, plate: v.plate } },
       update: data,
-      create: { plate: v.plate, ...data },
+      create: { organizationId: org.id, plate: v.plate, ...data },
     });
     vehicles.push({ id: vehicle.id, plate: v.plate, ownerId: vehicle.ownerId, blockId, authorized: v.authorized });
   }

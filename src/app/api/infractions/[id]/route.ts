@@ -1,22 +1,23 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson, withAuth } from "@/lib/api";
+import { jsonError, parseJson, withTenant } from "@/lib/api";
 
 const patchSchema = z.object({
   status: z.enum(["OPEN", "ACKNOWLEDGED", "RESOLVED", "DISMISSED"]),
   resolution: z.string().optional(),
 });
 
-export const PATCH = withAuth<{ id: string }>(
+export const PATCH = withTenant<{ id: string }>(
   async (req, { session, params }) => {
     const parsed = await parseJson(req, patchSchema);
     if (!parsed.ok) return parsed.response;
 
-    const infraction = await prisma.infraction.findUnique({ where: { id: params.id } });
+    const infraction = await prisma.infraction.findFirst({
+      where: { id: params.id, organizationId: session.organizationId },
+    });
     if (!infraction) return jsonError(404, "Infracción no encontrada");
 
-    // USER solo puede cambiar OPEN → ACKNOWLEDGED y solo si es su infracción
     if (session.role === "USER") {
       if (parsed.data.status !== "ACKNOWLEDGED")
         return jsonError(403, "Solo puedes reconocer la infracción");
@@ -26,7 +27,6 @@ export const PATCH = withAuth<{ id: string }>(
         return jsonError(400, "La infracción ya fue procesada");
     }
 
-    // GUARD/ADMIN al resolver o descartar guardan trazabilidad
     const resolvedData: Record<string, unknown> = {};
     if (
       session.role !== "USER" &&
@@ -38,7 +38,7 @@ export const PATCH = withAuth<{ id: string }>(
     }
 
     const updated = await prisma.infraction.update({
-      where: { id: params.id },
+      where: { id: infraction.id },
       data: { status: parsed.data.status, ...resolvedData },
     });
 

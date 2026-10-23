@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { parseJson, withAuth } from "@/lib/api";
+import { parseJson, withTenant } from "@/lib/api";
 
-export const GET = withAuth(async (_req, { session }) => {
+export const GET = withTenant(async (_req, { session }) => {
   const notifications = await prisma.notification.findMany({
     where: { userId: session.sub },
     orderBy: { createdAt: "desc" },
@@ -14,7 +14,7 @@ export const GET = withAuth(async (_req, { session }) => {
 
 const markSchema = z.object({ ids: z.array(z.string()).min(1) });
 
-export const POST = withAuth(async (req, { session }) => {
+export const POST = withTenant(async (req, { session }) => {
   const parsed = await parseJson(req, markSchema);
   if (!parsed.ok) return parsed.response;
   await prisma.notification.updateMany({

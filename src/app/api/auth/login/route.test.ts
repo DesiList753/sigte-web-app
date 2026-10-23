@@ -13,6 +13,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import { verifyToken } from "@/lib/jwt";
 import { POST } from "./route";
 
 function request(email: string, password: string) {
@@ -26,6 +27,22 @@ function request(email: string, password: string) {
 const CORRECT_PASSWORD = "correcta123";
 let correctHash: string;
 
+function user(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "user-1",
+    email: "u@test.cl",
+    passwordHash: correctHash,
+    active: true,
+    role: "USER",
+    name: "Usuario",
+    failedLoginAttempts: 0,
+    lockedUntil: null,
+    organizationId: "org-a",
+    organization: { status: "ACTIVE" },
+    ...overrides,
+  } as never;
+}
+
 describe("POST /api/auth/login", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -33,35 +50,14 @@ describe("POST /api/auth/login", () => {
   });
 
   it("bloquea el login si lockedUntil es futuro", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-1",
-      email: "u@usm.cl",
-      passwordHash: correctHash,
-      active: true,
-      role: "USER",
-      name: "Usuario",
-      failedLoginAttempts: 0,
-      lockedUntil: new Date(Date.now() + 5 * 60_000),
-    } as never);
-
-    const res = await POST(request("u@usm.cl", CORRECT_PASSWORD));
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ lockedUntil: new Date(Date.now() + 5 * 60_000) }));
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
     expect(res.status).toBe(429);
   });
 
   it("incrementa failedLoginAttempts en un intento fallido", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-1",
-      email: "u@usm.cl",
-      passwordHash: correctHash,
-      active: true,
-      role: "USER",
-      name: "Usuario",
-      failedLoginAttempts: 2,
-      lockedUntil: null,
-    } as never);
-
-    const res = await POST(request("u@usm.cl", "incorrecta"));
-
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ failedLoginAttempts: 2 }));
+    const res = await POST(request("u@test.cl", "incorrecta"));
     expect(res.status).toBe(401);
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
@@ -70,19 +66,8 @@ describe("POST /api/auth/login", () => {
   });
 
   it("bloquea 15 minutos al llegar al 5to intento fallido", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-1",
-      email: "u@usm.cl",
-      passwordHash: correctHash,
-      active: true,
-      role: "USER",
-      name: "Usuario",
-      failedLoginAttempts: 4,
-      lockedUntil: null,
-    } as never);
-
-    await POST(request("u@usm.cl", "incorrecta"));
-
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ failedLoginAttempts: 4 }));
+    await POST(request("u@test.cl", "incorrecta"));
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
       data: expect.objectContaining({ failedLoginAttempts: 0, lockedUntil: expect.any(Date) }),
@@ -90,23 +75,36 @@ describe("POST /api/auth/login", () => {
   });
 
   it("resetea el contador en un login exitoso tras intentos previos", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-1",
-      email: "u@usm.cl",
-      passwordHash: correctHash,
-      active: true,
-      role: "USER",
-      name: "Usuario",
-      failedLoginAttempts: 2,
-      lockedUntil: null,
-    } as never);
-
-    const res = await POST(request("u@usm.cl", CORRECT_PASSWORD));
-
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ failedLoginAttempts: 2 }));
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
     expect(res.status).toBe(200);
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
       data: { failedLoginAttempts: 0, lockedUntil: null },
     });
+  });
+
+  it("incluye la organización del usuario en el token", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user());
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
+    const body = await res.json();
+    expect(body.home).toBe("/user");
+    expect((await verifyToken(body.token))?.organizationId).toBe("org-a");
+  });
+
+  it("rechaza el login si la organización está suspendida", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ organization: { status: "SUSPENDED" } }));
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
+    expect(res.status).toBe(403);
+    expect((await res.json()).token).toBeUndefined();
+  });
+
+  it("permite al SUPER_ADMIN entrar sin organización", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(
+      user({ role: "SUPER_ADMIN", organizationId: null, organization: null })
+    );
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
+    expect(res.status).toBe(200);
+    expect((await res.json()).home).toBe("/platform");
   });
 });

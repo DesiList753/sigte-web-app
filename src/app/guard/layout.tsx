@@ -1,7 +1,6 @@
 import { PanelShell, type PanelNavGroup } from "@/components/PanelShell";
 import { Toaster } from "@/components/ui/sonner";
-import { getSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireTenantActor } from "@/lib/auth";
 
 const groups: PanelNavGroup[] = [
   { grp: "Operación", items: [
@@ -14,9 +13,7 @@ const groups: PanelNavGroup[] = [
 ];
 
 export default async function GuardLayout({ children }: { children: React.ReactNode }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
-  if (session.role !== "GUARD" && session.role !== "ADMIN") redirect("/");
+  const session = await requireTenantActor(["GUARD", "ADMIN"]);
   return (
     <>
       <PanelShell groups={groups} title="Guardia" subtitle="Operación de pórtico" userName={session.name} userRole="Guardia">

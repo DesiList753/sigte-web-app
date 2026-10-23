@@ -1,7 +1,6 @@
 import { PortalShell, type PortalTab } from "@/components/PortalShell";
 import { Toaster } from "@/components/ui/sonner";
-import { getSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireTenantActor } from "@/lib/auth";
 
 const tabs: PortalTab[] = [
   { href: "/user", label: "Inicio", icon: "home" },
@@ -13,8 +12,7 @@ const tabs: PortalTab[] = [
 ];
 
 export default async function UserLayout({ children }: { children: React.ReactNode }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireTenantActor(["USER", "GUARD", "ADMIN"]);
   return (
     <>
       <PortalShell tabs={tabs} userName={session.name}>{children}</PortalShell>

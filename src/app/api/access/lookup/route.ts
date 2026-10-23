@@ -1,41 +1,46 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { jsonError, withAuth } from "@/lib/api";
+import { jsonError, withTenant } from "@/lib/api";
 import { verifyQrToken } from "@/lib/qr";
 
-/**
- * GET /api/access/lookup?plate=XXX
- * Guardia busca por patente para prevalidar acceso antes de registrar.
- */
-export const GET = withAuth(
-  async (req) => {
+const include = {
+  owner: { select: { id: true, name: true, email: true, universityId: true } },
+  currentBlock: true,
+} satisfies Prisma.VehicleInclude;
+
+export const GET = withTenant(
+  async (req, { session }) => {
     const url = new URL(req.url);
     const plate = url.searchParams.get("plate")?.toUpperCase().replace(/\s+/g, "");
     const qr = url.searchParams.get("qr");
     const uid = url.searchParams.get("uid");
+    const organizationId = session.organizationId;
 
     let vehicle = null;
     if (plate) {
       vehicle = await prisma.vehicle.findUnique({
-        where: { plate },
-        include: { owner: { select: { id: true, name: true, email: true, universityId: true } }, currentBlock: true },
+        where: { organizationId_plate: { organizationId, plate } },
+        include,
       });
     } else if (qr) {
       const vResult = verifyQrToken(qr);
       if (!vResult.ok) {
         return NextResponse.json({ vehicle: null, qrError: vResult.error });
       }
-      vehicle = await prisma.vehicle.findUnique({
-        where: { id: vResult.vehicleId },
-        include: { owner: { select: { id: true, name: true, email: true, universityId: true } }, currentBlock: true },
+      vehicle = await prisma.vehicle.findFirst({
+        where: { id: vResult.vehicleId, organizationId },
+        include,
       });
     } else if (uid) {
-      const owner = await prisma.user.findUnique({ where: { universityId: uid } });
+      const owner = await prisma.user.findUnique({
+        where: { organizationId_universityId: { organizationId, universityId: uid } },
+      });
       if (owner) {
         vehicle = await prisma.vehicle.findFirst({
-          where: { ownerId: owner.id },
+          where: { ownerId: owner.id, organizationId },
           orderBy: { createdAt: "desc" },
-          include: { owner: { select: { id: true, name: true, email: true, universityId: true } }, currentBlock: true },
+          include,
         });
       }
     } else {

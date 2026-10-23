@@ -36,11 +36,7 @@ function LoginForm() {
         setError(data.error ?? "Credenciales inválidas");
         return;
       }
-      const next = sp.get("next");
-      if (next) router.replace(next);
-      else if (data.role === "ADMIN") router.replace("/admin");
-      else if (data.role === "GUARD") router.replace("/guard");
-      else router.replace("/user");
+      router.replace(sp.get("next") ?? data.home);
     } finally {
       setLoading(false);
     }

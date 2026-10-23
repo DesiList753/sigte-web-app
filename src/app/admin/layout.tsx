@@ -1,7 +1,6 @@
 import { PanelShell, type PanelNavGroup } from "@/components/PanelShell";
 import { Toaster } from "@/components/ui/sonner";
-import { getSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireTenantActor } from "@/lib/auth";
 
 const groups: PanelNavGroup[] = [
   { grp: "Administración", items: [
@@ -15,9 +14,7 @@ const groups: PanelNavGroup[] = [
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
-  if (session.role !== "ADMIN") redirect("/");
+  const session = await requireTenantActor(["ADMIN"]);
   return (
     <>
       <PanelShell groups={groups} title="Administración" subtitle="Vista de mando" userName={session.name} userRole="Administración">

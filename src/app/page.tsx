@@ -1,7 +1,6 @@
-/* Landing — punto de entrada del sistema S.I.G.T.E */
 import Link from "next/link";
 import { I } from "@/components/Icon";
-import { getSession } from "@/lib/auth";
+import { getActor, homePath } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import s from "./home.module.css";
 
@@ -13,12 +12,8 @@ const FUNCIONES = [
 ] as const;
 
 export default async function Home() {
-  const session = await getSession();
-  if (session) {
-    if (session.role === "ADMIN") redirect("/admin");
-    if (session.role === "GUARD") redirect("/guard");
-    redirect("/user");
-  }
+  const actor = await getActor();
+  if (actor) redirect(homePath(actor.role));
 
   return (
     <div className={s.page}>

@@ -1,25 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest, type SessionPayload } from "./auth";
-import type { Role } from "@prisma/client";
 import { ZodError, ZodSchema } from "zod";
+import {
+  asTenant,
+  getSessionFromRequest,
+  resolveActor,
+  type TenantRole,
+  type TenantSession,
+} from "./auth";
 
-export type ApiHandler<T = unknown> = (
+export type TenantHandler<T = unknown> = (
   req: NextRequest,
-  ctx: { session: SessionPayload; params: T }
+  ctx: { session: TenantSession; params: T }
 ) => Promise<Response> | Response;
 
-/** Envuelve un handler asegurando sesión y (opcional) roles permitidos. */
-export function withAuth<T = Record<string, never>>(
-  handler: ApiHandler<T>,
-  opts?: { roles?: Role[] }
+export function withTenant<T = Record<string, never>>(
+  handler: TenantHandler<T>,
+  opts?: { roles?: TenantRole[] }
 ) {
   return async (req: NextRequest, ctx: { params: Promise<T> }) => {
-    const session = await getSessionFromRequest(req);
-    if (!session) return jsonError(401, "No autenticado");
+    const actor = await resolveActor(await getSessionFromRequest(req));
+    if (!actor) return jsonError(401, "No autenticado");
+    const session = asTenant(actor);
+    if (!session) return jsonError(403, "Acceso denegado");
+    if (actor.organization?.status !== "ACTIVE") {
+      return jsonError(403, "La cuenta de tu organización está suspendida", { code: "ORG_SUSPENDED" });
+    }
     if (opts?.roles && !opts.roles.includes(session.role)) {
       return jsonError(403, "Acceso denegado para el rol " + session.role);
     }
-    const resolvedParams = (ctx?.params ? await ctx.params : ({} as T));
+    const resolvedParams = ctx?.params ? await ctx.params : ({} as T);
     return handler(req, { session, params: resolvedParams });
   };
 }

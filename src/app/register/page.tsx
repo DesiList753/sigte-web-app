@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import { I } from "@/components/Icon";
 import { Brand, Card } from "@/components/ui-system";
 import { formatRut, isValidRut } from "@/lib/rut";
@@ -10,7 +10,16 @@ import { formatRut, isValidRut } from "@/lib/rut";
 type UserType = "STAFF" | "STUDENT";
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const organizationSlug = useSearchParams().get("org");
   const [userType, setUserType] = useState<UserType>("STUDENT");
   const [form, setForm] = useState({
     name: "",
@@ -18,10 +27,8 @@ export default function RegisterPage() {
     password: "",
     phone: "",
     universityId: "",
-    // staff
     position: "",
     department: "",
-    // student
     rut: "",
     academicDepartment: "",
     career: "",
@@ -53,6 +60,7 @@ export default function RegisterPage() {
         userType === "STAFF"
           ? {
               userType,
+              organizationSlug,
               name: form.name,
               email: form.email,
               password: form.password,
@@ -63,6 +71,7 @@ export default function RegisterPage() {
             }
           : {
               userType,
+              organizationSlug,
               name: form.name,
               email: form.email,
               password: form.password,
@@ -83,10 +92,29 @@ export default function RegisterPage() {
         setError(data.error ?? "No se pudo completar el registro");
         return;
       }
-      router.replace("/user");
+      router.replace(data.home);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!organizationSlug) {
+    return (
+      <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
+        <Card style={{ width: "100%", maxWidth: 460 }}>
+          <div style={{ display: "inline-flex", marginBottom: 20 }}>
+            <Brand />
+          </div>
+          <h1 style={{ fontSize: 22, marginBottom: 8 }}>Crear cuenta</h1>
+          <p style={{ color: "var(--ink-500)", fontSize: 13.5, marginBottom: 20 }}>
+            Para crear tu cuenta usa el enlace de registro que te entregó tu organización.
+          </p>
+          <Link href="/login" className="btn secondary block">
+            Volver a iniciar sesión
+          </Link>
+        </Card>
+      </main>
+    );
   }
 
   return (
@@ -100,7 +128,6 @@ export default function RegisterPage() {
           Registro como usuario del campus.
         </p>
 
-        {/* Tipo de usuario */}
         <div className="field" style={{ marginBottom: 14 }}>
           <label className="field-lbl">Tipo de usuario</label>
           <div className="row" style={{ gap: 8 }}>

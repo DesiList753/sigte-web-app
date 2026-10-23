@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, setSessionCookie, signToken } from "@/lib/auth";
+import { hashPassword, homePath, setSessionCookie } from "@/lib/auth";
+import { signToken } from "@/lib/jwt";
 import { jsonError, parseJson } from "@/lib/api";
 import { formatRut, isValidRut } from "@/lib/rut";
 
-// Campos comunes a Funcionario/Docente y Alumno.
 const baseFields = {
+  organizationSlug: z.string().min(1),
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
@@ -17,19 +18,25 @@ const baseFields = {
 const staffSchema = z.object({
   userType: z.literal("STAFF"),
   ...baseFields,
-  position: z.string().min(2), // Cargo
-  department: z.string().min(2), // Departamento o Unidad
+  position: z.string().min(2),
+  department: z.string().min(2),
 });
 
 const studentSchema = z.object({
   userType: z.literal("STUDENT"),
   ...baseFields,
   rut: z.string().refine(isValidRut, "RUT inválido"),
-  academicDepartment: z.string().min(2), // Departamento Académico
-  career: z.string().min(2), // Carrera
+  academicDepartment: z.string().min(2),
+  career: z.string().min(2),
 });
 
 const schema = z.discriminatedUnion("userType", [staffSchema, studentSchema]);
+
+function isAllowedEmail(email: string, domains: string[]) {
+  if (domains.length === 0) return true;
+  const domain = email.split("@")[1] ?? "";
+  return domains.some((d) => domain === d || domain.endsWith(`.${d}`));
+}
 
 export async function POST(req: NextRequest) {
   const parsed = await parseJson(req, schema);
@@ -38,23 +45,40 @@ export async function POST(req: NextRequest) {
   const data = parsed.data;
   const emailLower = data.email.toLowerCase();
 
+  const org = await prisma.organization.findUnique({
+    where: { slug: data.organizationSlug },
+    select: { id: true, status: true, selfRegistration: true, allowedEmailDomains: true },
+  });
+  if (!org) return jsonError(404, "Organización no encontrada");
+  if (org.status !== "ACTIVE" || !org.selfRegistration) {
+    return jsonError(403, "El registro no está disponible para esta organización");
+  }
+  if (!isAllowedEmail(emailLower, org.allowedEmailDomains)) {
+    return jsonError(400, `Usa un correo de ${org.allowedEmailDomains.join(", ")}`);
+  }
+
   const existing = await prisma.user.findUnique({ where: { email: emailLower } });
   if (existing) return jsonError(409, "El email ya está registrado");
 
   if (data.universityId) {
-    const collision = await prisma.user.findUnique({ where: { universityId: data.universityId } });
+    const collision = await prisma.user.findUnique({
+      where: { organizationId_universityId: { organizationId: org.id, universityId: data.universityId } },
+    });
     if (collision) return jsonError(409, "La credencial universitaria ya existe");
   }
 
   const rut = data.userType === "STUDENT" ? formatRut(data.rut) : null;
   if (rut) {
-    const rutCollision = await prisma.user.findUnique({ where: { rut } });
+    const rutCollision = await prisma.user.findUnique({
+      where: { organizationId_rut: { organizationId: org.id, rut } },
+    });
     if (rutCollision) return jsonError(409, "El RUT ya está registrado");
   }
 
   const passwordHash = await hashPassword(data.password);
   const user = await prisma.user.create({
     data: {
+      organizationId: org.id,
       email: emailLower,
       passwordHash,
       name: data.name,
@@ -62,10 +86,8 @@ export async function POST(req: NextRequest) {
       role: "USER",
       userType: data.userType,
       phone: data.phone,
-      // Funcionario / Docente
       position: data.userType === "STAFF" ? data.position : null,
       department: data.userType === "STAFF" ? data.department : null,
-      // Alumno
       rut,
       academicDepartment: data.userType === "STUDENT" ? data.academicDepartment : null,
       career: data.userType === "STUDENT" ? data.career : null,
@@ -77,6 +99,7 @@ export async function POST(req: NextRequest) {
     email: user.email,
     role: user.role,
     name: user.name,
+    organizationId: org.id,
   });
   await setSessionCookie(token);
 
@@ -85,6 +108,8 @@ export async function POST(req: NextRequest) {
     email: user.email,
     name: user.name,
     role: user.role,
+    organizationId: org.id,
+    home: homePath(user.role),
     token,
   });
 }

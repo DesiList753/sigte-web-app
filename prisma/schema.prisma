@@ -104,7 +104,7 @@ model User {
   passwordHash        String
   name                String
   role                Role          @default(USER)
-  universityId        String?       @unique
+  universityId        String?
   active              Boolean       @default(true)
   failedLoginAttempts Int           @default(0)
   lockedUntil         DateTime?
@@ -115,7 +115,7 @@ model User {
   phone              String?
   position           String?
   department         String?
-  rut                String?   @unique
+  rut                String?
   academicDepartment String?
   career             String?
 
@@ -129,6 +129,8 @@ model User {
   resetTokens         PasswordResetToken[]
   auditLogs           AuditLog[]
 
+  @@unique([organizationId, universityId])
+  @@unique([organizationId, rut])
   @@index([organizationId, role])
 }
 
@@ -145,37 +147,37 @@ model PasswordResetToken {
 }
 
 model Vehicle {
-  id             String        @id @default(cuid())
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  plate          String        @unique
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  plate          String
   make           String?
   model          String?
   color          String?
-  authorized     Boolean       @default(true)
+  authorized     Boolean      @default(true)
   ownerId        String
-  owner          User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  owner          User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   accessLogs     AccessLog[]
   infractions    Infraction[]
   currentBlockId String?
   currentBlock   ParkingBlock? @relation(fields: [currentBlockId], references: [id])
 
+  @@unique([organizationId, plate])
   @@index([ownerId])
 }
 
 model ParkingBlock {
-  id             String        @id @default(cuid())
-  organizationId String?
-  organization   Organization? @relation("OrganizationBlocks", fields: [organizationId], references: [id])
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation("OrganizationBlocks", fields: [organizationId], references: [id])
   name           String
   description    String?
   capacity       Int
-  isDefault      Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   defaultOf  Organization? @relation("DefaultBlock")
   vehicles   Vehicle[]
@@ -198,8 +200,8 @@ enum AccessMethod {
 
 model AccessLog {
   id             String          @id @default(cuid())
-  organizationId String?
-  organization   Organization?   @relation(fields: [organizationId], references: [id])
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id])
   vehicleId      String
   vehicle        Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   userId         String?
@@ -214,7 +216,6 @@ model AccessLog {
   authorized     Boolean         @default(true)
   note           String?
 
-  @@index([timestamp])
   @@index([organizationId, timestamp])
   @@index([vehicleId])
 }
@@ -238,8 +239,8 @@ enum InfractionStatus {
 
 model Infraction {
   id             String           @id @default(cuid())
-  organizationId String?
-  organization   Organization?    @relation(fields: [organizationId], references: [id])
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id])
   vehicleId      String
   vehicle        Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   userId         String?
@@ -275,15 +276,15 @@ model PushToken {
 }
 
 model Notification {
-  id             String        @id @default(cuid())
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
   userId         String
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   title          String
   message        String
-  read           Boolean       @default(false)
-  createdAt      DateTime      @default(now())
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
 
   @@index([userId, createdAt])
 }
