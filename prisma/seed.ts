@@ -317,6 +317,21 @@ async function seedOrganization(def: OrgDef, planIds: Record<string, string>) {
       update: data,
       create: { email: u.email, ...data },
     });
+    const membership = {
+      role: u.role,
+      active: true,
+      credentialId: u.credentialId ?? null,
+      userType: u.userType ?? null,
+      position: u.position ?? null,
+      department: u.department ?? null,
+      academicDepartment: u.academicDepartment ?? null,
+      career: u.career ?? null,
+    };
+    await prisma.membership.upsert({
+      where: { userId_organizationId: { userId: user.id, organizationId: org.id } },
+      update: membership,
+      create: { userId: user.id, organizationId: org.id, ...membership },
+    });
     userIds[u.email] = user.id;
   }
 
