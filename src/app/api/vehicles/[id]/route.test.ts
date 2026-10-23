@@ -2,19 +2,22 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    vehicle: {
-      findFirst: vi.fn(),
-      update: vi.fn().mockResolvedValue({ id: "vehicle-1" }),
-      delete: vi.fn().mockResolvedValue({ id: "vehicle-1" }),
-    },
-  },
-}));
+vi.mock("@/lib/prisma", async () => {
+  const { mockPrismaWithAudit } = await import("@/test/prisma");
+  return {
+    prisma: mockPrismaWithAudit({
+      vehicle: {
+        findFirst: vi.fn(),
+        update: vi.fn().mockResolvedValue({ id: "vehicle-1" }),
+        delete: vi.fn().mockResolvedValue({ id: "vehicle-1" }),
+      },
+    }),
+  };
+});
 
 import { prisma } from "@/lib/prisma";
 import { DELETE, PATCH } from "./route";
-import { ORG_A, ORG_B, onlyInOrg, params, tenantRequest } from "@/test/tenant";
+import { ORG_A, ORG_B, auditedIn, onlyInOrg, params, tenantRequest } from "@/test/tenant";
 
 const ownedVehicle = { id: "vehicle-1", ownerId: "user-1", plate: "AB1234", organizationId: ORG_A };
 
@@ -92,11 +95,13 @@ describe("DELETE /api/vehicles/[id]", () => {
   it("permite a ADMIN eliminar cualquier vehículo de su organización", async () => {
     const res = await callDelete("ADMIN", "admin-1");
     expect(res.status).toBe(200);
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "DELETE", "VEHICLE"));
   });
 
   it("un ADMIN de otra organización no puede eliminar el vehículo", async () => {
     const res = await callDelete("ADMIN", "admin-b", ORG_B);
     expect(res.status).toBe(404);
     expect(prisma.vehicle.delete).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 });

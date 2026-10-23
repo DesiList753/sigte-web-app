@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { auditData } from "@/lib/audit";
 
 export const GET = withTenant(async (req, { session }) => {
   const url = new URL(req.url);
@@ -71,17 +72,30 @@ export const POST = withTenant(async (req, { session }) => {
   });
   if (existing) return jsonError(409, "Patente ya registrada");
 
-  const vehicle = await prisma.vehicle.create({
-    data: {
-      organizationId,
-      plate,
-      make: data.make,
-      model: data.model,
-      color: data.color,
-      authorized: session.role === "USER" ? undefined : data.authorized,
-      ownerId,
-    },
-    include: { owner: { select: { id: true, name: true, email: true } } },
+  const vehicle = await prisma.$transaction(async (tx) => {
+    const created = await tx.vehicle.create({
+      data: {
+        organizationId,
+        plate,
+        make: data.make,
+        model: data.model,
+        color: data.color,
+        authorized: session.role === "USER" ? undefined : data.authorized,
+        ownerId,
+      },
+      include: { owner: { select: { id: true, name: true, email: true } } },
+    });
+    await tx.auditLog.create({
+      data: auditData({
+        organizationId,
+        actor: session,
+        action: "CREATE",
+        entity: "VEHICLE",
+        entityId: created.id,
+        detail: { plate },
+      }),
+    });
+    return created;
   });
   return NextResponse.json({ vehicle }, { status: 201 });
 });

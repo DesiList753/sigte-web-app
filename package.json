@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "seed": "tsx prisma/seed.ts",
+    "platform:admin": "tsx scripts/create-super-admin.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },

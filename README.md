@@ -264,6 +264,9 @@ pnpm migrate
 # Sembrar datos de prueba (organización demo, USM Viña, planes y un SUPER_ADMIN)
 pnpm seed
 
+# Crear o actualizar la cuenta de plataforma (VanillaSoft) en producción
+SUPER_ADMIN_EMAIL="correo@dominio.cl" SUPER_ADMIN_PASSWORD="minimo-12-caracteres" pnpm platform:admin
+
 # Iniciar servidor de desarrollo
 pnpm dev
 

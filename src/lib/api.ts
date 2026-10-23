@@ -13,6 +13,13 @@ export type TenantHandler<T = unknown> = (
   ctx: { session: TenantSession; params: T }
 ) => Promise<Response> | Response;
 
+export type PlatformSession = { sub: string; email: string; name: string };
+
+export type PlatformHandler<T = unknown> = (
+  req: NextRequest,
+  ctx: { session: PlatformSession; params: T }
+) => Promise<Response> | Response;
+
 export function withTenant<T = Record<string, never>>(
   handler: TenantHandler<T>,
   opts?: { roles?: TenantRole[] }
@@ -30,6 +37,19 @@ export function withTenant<T = Record<string, never>>(
     }
     const resolvedParams = ctx?.params ? await ctx.params : ({} as T);
     return handler(req, { session, params: resolvedParams });
+  };
+}
+
+export function withPlatform<T = Record<string, never>>(handler: PlatformHandler<T>) {
+  return async (req: NextRequest, ctx: { params: Promise<T> }) => {
+    const actor = await resolveActor(await getSessionFromRequest(req));
+    if (!actor) return jsonError(401, "No autenticado");
+    if (actor.role !== "SUPER_ADMIN") return jsonError(403, "Acceso denegado");
+    const resolvedParams = ctx?.params ? await ctx.params : ({} as T);
+    return handler(req, {
+      session: { sub: actor.id, email: actor.email, name: actor.name },
+      params: resolvedParams,
+    });
   };
 }
 

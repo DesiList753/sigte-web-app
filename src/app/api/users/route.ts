@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { auditData } from "@/lib/audit";
 
 export const GET = withTenant(
   async (req, { session }) => {
@@ -73,9 +74,22 @@ export const POST = withTenant(
     }
 
     const passwordHash = await hashPassword(password);
-    const user = await prisma.user.create({
-      data: { organizationId, email: emailLower, passwordHash, name, role, universityId: universityId || null },
-      select: { id: true, email: true, name: true, role: true, universityId: true, active: true },
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: { organizationId, email: emailLower, passwordHash, name, role, universityId: universityId || null },
+        select: { id: true, email: true, name: true, role: true, universityId: true, active: true },
+      });
+      await tx.auditLog.create({
+        data: auditData({
+          organizationId,
+          actor: session,
+          action: "CREATE",
+          entity: "USER",
+          entityId: created.id,
+          detail: { email: created.email, role: created.role },
+        }),
+      });
+      return created;
     });
     return NextResponse.json({ user }, { status: 201 });
   },

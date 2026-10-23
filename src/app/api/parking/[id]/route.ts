@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { auditData } from "@/lib/audit";
 
 const updateSchema = z.object({
   name: z.string().optional(),
@@ -63,6 +64,16 @@ export const DELETE = withTenant<{ id: string }>(
         data: { currentBlockId: org?.defaultBlockId ?? null },
       }),
       prisma.parkingBlock.delete({ where: { id: target.id } }),
+      prisma.auditLog.create({
+        data: auditData({
+          organizationId,
+          actor: session,
+          action: "DELETE",
+          entity: "PARKING_BLOCK",
+          entityId: target.id,
+          detail: { name: target.name },
+        }),
+      }),
     ]);
     return NextResponse.json({ ok: true });
   },

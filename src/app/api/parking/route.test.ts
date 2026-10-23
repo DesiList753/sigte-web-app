@@ -2,24 +2,27 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    organization: { findUnique: vi.fn().mockResolvedValue({ defaultBlockId: "default-a" }) },
-    parkingBlock: {
-      findMany: vi.fn().mockResolvedValue([
-        { id: "block-a", name: "A", description: null, capacity: 10, _count: { vehicles: 2 } },
-        { id: "default-a", name: "No definido", description: null, capacity: 50, _count: { vehicles: 1 } },
-      ]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-block", ...data })),
-    },
-    vehicle: { count: vi.fn().mockResolvedValue(3) },
-  },
-}));
+vi.mock("@/lib/prisma", async () => {
+  const { mockPrismaWithAudit } = await import("@/test/prisma");
+  return {
+    prisma: mockPrismaWithAudit({
+      organization: { findUnique: vi.fn().mockResolvedValue({ defaultBlockId: "default-a" }) },
+      parkingBlock: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: "block-a", name: "A", description: null, capacity: 10, _count: { vehicles: 2 } },
+          { id: "default-a", name: "No definido", description: null, capacity: 50, _count: { vehicles: 1 } },
+        ]),
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-block", ...data })),
+      },
+      vehicle: { count: vi.fn().mockResolvedValue(3) },
+    }),
+  };
+});
 
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "./route";
-import { ORG_A, params, scopedTo, tenantRequest } from "@/test/tenant";
+import { ORG_A, auditedIn, params, scopedTo, tenantRequest } from "@/test/tenant";
 
 async function post(body: Record<string, unknown>, role: "ADMIN" | "GUARD" = "ADMIN") {
   const req = await tenantRequest("/api/parking", { role }, { method: "POST", body });
@@ -49,6 +52,7 @@ describe("POST /api/parking", () => {
     expect(prisma.parkingBlock.create).toHaveBeenCalledWith({
       data: { name: "Nuevo", capacity: 20, organizationId: ORG_A },
     });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "CREATE", "PARKING_BLOCK"));
   });
 
   it("marcarlo por defecto lo asigna solo a su organización", async () => {

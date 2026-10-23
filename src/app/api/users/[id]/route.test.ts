@@ -2,24 +2,27 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    user: {
-      findFirst: vi.fn(),
-      findUnique: vi.fn().mockResolvedValue(null),
-      count: vi.fn().mockResolvedValue(1),
-      update: vi.fn().mockResolvedValue({ id: "target-1", role: "GUARD" }),
-      delete: vi.fn().mockResolvedValue({ id: "target-1" }),
-    },
-    infraction: { count: vi.fn().mockResolvedValue(0) },
-  },
-}));
+vi.mock("@/lib/prisma", async () => {
+  const { mockPrismaWithAudit } = await import("@/test/prisma");
+  return {
+    prisma: mockPrismaWithAudit({
+      user: {
+        findFirst: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue(null),
+        count: vi.fn().mockResolvedValue(1),
+        update: vi.fn().mockResolvedValue({ id: "target-1", role: "GUARD" }),
+        delete: vi.fn().mockResolvedValue({ id: "target-1" }),
+      },
+      infraction: { count: vi.fn().mockResolvedValue(0) },
+    }),
+  };
+});
 
 import { prisma } from "@/lib/prisma";
 import { DELETE, PATCH } from "./route";
-import { ORG_A, ORG_B, onlyInOrg, params, tenantRequest } from "@/test/tenant";
+import { ORG_A, ORG_B, auditedIn, onlyInOrg, params, tenantRequest } from "@/test/tenant";
 
-const target = { id: "target-1", role: "USER", active: true, universityId: null };
+const target = { id: "target-1", email: "target@test.cl", role: "USER", active: true, universityId: null };
 
 async function callPatch(
   role: "USER" | "GUARD" | "ADMIN",
@@ -50,6 +53,22 @@ describe("PATCH /api/users/[id]", () => {
       data: { role: "GUARD" },
       select: expect.any(Object),
     });
+    expect(prisma.auditLog.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          organizationId: ORG_A,
+          action: "ROLE_CHANGE",
+          entity: "USER",
+          entityId: "target-1",
+          detail: { email: "target@test.cl", from: "USER", to: "GUARD" },
+        }),
+      ],
+    });
+  });
+
+  it("no registra auditoría si el rol no cambia", async () => {
+    await callPatch("ADMIN", "admin-1", { role: "USER", name: "Otro nombre" });
+    expect(prisma.auditLog.createMany).not.toHaveBeenCalled();
   });
 
   it("rechaza a un GUARD (no es ADMIN)", async () => {
@@ -95,6 +114,7 @@ describe("DELETE /api/users/[id]", () => {
     const res = await callDelete("admin-1", "target-1");
     expect(res.status).toBe(200);
     expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "target-1" } });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "DELETE", "USER"));
   });
 
   it("un ADMIN no puede eliminarse a si mismo", async () => {
@@ -107,6 +127,7 @@ describe("DELETE /api/users/[id]", () => {
     const res = await callDelete("admin-b", "target-1", ORG_B);
     expect(res.status).toBe(404);
     expect(prisma.user.delete).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
   });
 
   it("no elimina a quien registró infracciones y sugiere desactivarlo", async () => {

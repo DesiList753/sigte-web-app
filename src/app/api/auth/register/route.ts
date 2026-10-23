@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword, homePath, setSessionCookie } from "@/lib/auth";
 import { signToken } from "@/lib/jwt";
 import { jsonError, parseJson } from "@/lib/api";
+import { auditData } from "@/lib/audit";
 import { formatRut, isValidRut } from "@/lib/rut";
 
 const baseFields = {
@@ -76,22 +77,35 @@ export async function POST(req: NextRequest) {
   }
 
   const passwordHash = await hashPassword(data.password);
-  const user = await prisma.user.create({
-    data: {
-      organizationId: org.id,
-      email: emailLower,
-      passwordHash,
-      name: data.name,
-      universityId: data.universityId || null,
-      role: "USER",
-      userType: data.userType,
-      phone: data.phone,
-      position: data.userType === "STAFF" ? data.position : null,
-      department: data.userType === "STAFF" ? data.department : null,
-      rut,
-      academicDepartment: data.userType === "STUDENT" ? data.academicDepartment : null,
-      career: data.userType === "STUDENT" ? data.career : null,
-    },
+  const user = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        organizationId: org.id,
+        email: emailLower,
+        passwordHash,
+        name: data.name,
+        universityId: data.universityId || null,
+        role: "USER",
+        userType: data.userType,
+        phone: data.phone,
+        position: data.userType === "STAFF" ? data.position : null,
+        department: data.userType === "STAFF" ? data.department : null,
+        rut,
+        academicDepartment: data.userType === "STUDENT" ? data.academicDepartment : null,
+        career: data.userType === "STUDENT" ? data.career : null,
+      },
+    });
+    await tx.auditLog.create({
+      data: auditData({
+        organizationId: org.id,
+        actor: { sub: created.id, name: created.name },
+        action: "CREATE",
+        entity: "USER",
+        entityId: created.id,
+        detail: { email: created.email, role: created.role },
+      }),
+    });
+    return created;
   });
 
   const token = await signToken({

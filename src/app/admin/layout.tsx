@@ -10,6 +10,7 @@ const groups: PanelNavGroup[] = [
     { href: "/admin/parking", label: "Bloques", icon: "parking" },
     { href: "/admin/access", label: "Accesos", icon: "history" },
     { href: "/admin/infractions", label: "Infracciones", icon: "shieldAlert" },
+    { href: "/admin/audit", label: "Auditoría", icon: "list" },
   ] },
 ];
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, verifyToken } from "@/lib/jwt";
 
 const PROTECTED = [
+  { prefix: "/platform", roles: ["SUPER_ADMIN"] },
   { prefix: "/admin", roles: ["ADMIN"] },
   { prefix: "/guard", roles: ["GUARD", "ADMIN"] },
   { prefix: "/user", roles: ["USER", "GUARD", "ADMIN"] },
@@ -32,5 +33,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/guard/:path*", "/user/:path*"],
+  matcher: ["/platform/:path*", "/admin/:path*", "/guard/:path*", "/user/:path*"],
 };

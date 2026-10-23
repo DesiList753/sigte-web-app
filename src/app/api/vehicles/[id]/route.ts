@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { auditData } from "@/lib/audit";
 
 const updateSchema = z.object({
   make: z.string().optional(),
@@ -41,6 +42,18 @@ export const DELETE = withTenant<{ id: string }>(async (_req, { session, params 
   if (session.role === "USER" && vehicle.ownerId !== session.sub)
     return jsonError(403, "No puedes eliminar este vehículo");
 
-  await prisma.vehicle.delete({ where: { id: vehicle.id } });
+  await prisma.$transaction([
+    prisma.vehicle.delete({ where: { id: vehicle.id } }),
+    prisma.auditLog.create({
+      data: auditData({
+        organizationId: session.organizationId,
+        actor: session,
+        action: "DELETE",
+        entity: "VEHICLE",
+        entityId: vehicle.id,
+        detail: { plate: vehicle.plate },
+      }),
+    }),
+  ]);
   return NextResponse.json({ ok: true });
 });

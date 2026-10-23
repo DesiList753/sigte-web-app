@@ -2,23 +2,25 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    organization: { findUnique: vi.fn().mockResolvedValue({ defaultBlockId: "default-a" }) },
-    parkingBlock: {
-      findFirst: vi.fn(),
-      findUnique: vi.fn().mockResolvedValue(null),
-      update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "block-a", ...data })),
-      delete: vi.fn().mockResolvedValue({}),
-    },
-    vehicle: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
-    $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
-  },
-}));
+vi.mock("@/lib/prisma", async () => {
+  const { mockPrismaWithAudit } = await import("@/test/prisma");
+  return {
+    prisma: mockPrismaWithAudit({
+      organization: { findUnique: vi.fn().mockResolvedValue({ defaultBlockId: "default-a" }) },
+      parkingBlock: {
+        findFirst: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue(null),
+        update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "block-a", ...data })),
+        delete: vi.fn().mockResolvedValue({}),
+      },
+      vehicle: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    }),
+  };
+});
 
 import { prisma } from "@/lib/prisma";
 import { DELETE, PATCH } from "./route";
-import { ORG_A, ORG_B, onlyInOrg, params, tenantRequest } from "@/test/tenant";
+import { ORG_A, ORG_B, auditedIn, onlyInOrg, params, tenantRequest } from "@/test/tenant";
 
 const blockA = { id: "block-a", name: "A", capacity: 10, organizationId: ORG_A, defaultOf: null };
 
@@ -88,5 +90,6 @@ describe("DELETE /api/parking/[id]", () => {
       data: { currentBlockId: "default-a" },
     });
     expect(prisma.parkingBlock.delete).toHaveBeenCalledWith({ where: { id: "block-a" } });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "DELETE", "PARKING_BLOCK"));
   });
 });

@@ -16,11 +16,19 @@ type As = {
   active?: boolean;
 };
 
-export async function tenantRequest(
-  path: string,
-  as: As,
-  init: { method?: string; body?: unknown } = {}
-) {
+type Init = { method?: string; body?: unknown };
+
+function build(path: string, token: string, init: Init) {
+  const headers: Record<string, string> = { authorization: `Bearer ${token}` };
+  if (init.body !== undefined) headers["content-type"] = "application/json";
+  return new NextRequest(`http://localhost${path}`, {
+    method: init.method ?? "GET",
+    headers,
+    body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+  });
+}
+
+export async function tenantRequest(path: string, as: As, init: Init = {}) {
   const sub = as.sub ?? `${as.role.toLowerCase()}-a`;
   const organizationId = as.organizationId ?? ORG_A;
   const email = `${sub}@test.cl`;
@@ -34,13 +42,27 @@ export async function tenantRequest(
     organization: { status: as.status ?? "ACTIVE" },
   });
   const token = await signToken({ sub, email, role: as.role, name: sub, organizationId });
-  const headers: Record<string, string> = { authorization: `Bearer ${token}` };
-  if (init.body !== undefined) headers["content-type"] = "application/json";
-  return new NextRequest(`http://localhost${path}`, {
-    method: init.method ?? "GET",
-    headers,
-    body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+  return build(path, token, init);
+}
+
+export async function platformRequest(path: string, init: Init = {}) {
+  vi.mocked(loadActor).mockResolvedValue({
+    id: "root",
+    email: "root@vanillasoft.test",
+    name: "Equipo VanillaSoft",
+    role: "SUPER_ADMIN",
+    active: true,
+    organizationId: null,
+    organization: null,
   });
+  const token = await signToken({
+    sub: "root",
+    email: "root@vanillasoft.test",
+    role: "SUPER_ADMIN",
+    name: "Equipo VanillaSoft",
+    organizationId: null,
+  });
+  return build(path, token, init);
 }
 
 export function params<T>(value: T) {
@@ -54,4 +76,10 @@ export function onlyInOrg<T>(organizationId: string, record: T) {
 
 export function scopedTo(organizationId: string) {
   return expect.objectContaining({ where: expect.objectContaining({ organizationId }) });
+}
+
+export function auditedIn(organizationId: string, action: string, entity: string) {
+  return expect.objectContaining({
+    data: expect.objectContaining({ organizationId, action, entity }),
+  });
 }

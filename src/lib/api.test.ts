@@ -5,8 +5,8 @@ vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 
 import { loadActor } from "@/lib/actor";
 import { signToken } from "@/lib/jwt";
-import { withTenant } from "./api";
-import { ORG_A, params, tenantRequest } from "@/test/tenant";
+import { withPlatform, withTenant } from "./api";
+import { ORG_A, params, platformRequest, tenantRequest } from "@/test/tenant";
 
 const handler = vi.fn(async (_req: NextRequest, ctx: { session: unknown }) =>
   NextResponse.json({ session: ctx.session })
@@ -84,5 +84,28 @@ describe("withTenant", () => {
     const res = await withTenant(handler, { roles: ["ADMIN"] })(await tenantRequest("/x", { role: "GUARD" }), params({}));
     expect(res.status).toBe(403);
     expect(handler).not.toHaveBeenCalled();
+  });
+});
+
+describe("withPlatform", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("deja pasar al SUPER_ADMIN", async () => {
+    const res = await withPlatform(handler)(await platformRequest("/x"), params({}));
+    expect(res.status).toBe(200);
+    expect((await res.json()).session).toEqual({ sub: "root", email: "root@vanillasoft.test", name: "Equipo VanillaSoft" });
+  });
+
+  it("rechaza al ADMIN de una organización", async () => {
+    const res = await withPlatform(handler)(await tenantRequest("/x", { role: "ADMIN" }), params({}));
+    expect(res.status).toBe(403);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("rechaza una petición sin sesión", async () => {
+    const res = await withPlatform(handler)(new NextRequest("http://localhost/x"), params({}));
+    expect(res.status).toBe(401);
   });
 });

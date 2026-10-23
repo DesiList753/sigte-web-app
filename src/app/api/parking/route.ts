@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { auditData } from "@/lib/audit";
 
 export const GET = withTenant(async (_req, { session }) => {
   const organizationId = session.organizationId;
@@ -59,12 +60,25 @@ export const POST = withTenant(
     });
     if (existing) return jsonError(409, "Ya existe un bloque con ese nombre");
 
-    const block = await prisma.parkingBlock.create({
-      data: {
-        ...data,
-        organizationId,
-        ...(isDefault ? { defaultOf: { connect: { id: organizationId } } } : {}),
-      },
+    const block = await prisma.$transaction(async (tx) => {
+      const created = await tx.parkingBlock.create({
+        data: {
+          ...data,
+          organizationId,
+          ...(isDefault ? { defaultOf: { connect: { id: organizationId } } } : {}),
+        },
+      });
+      await tx.auditLog.create({
+        data: auditData({
+          organizationId,
+          actor: session,
+          action: "CREATE",
+          entity: "PARKING_BLOCK",
+          entityId: created.id,
+          detail: { name: created.name },
+        }),
+      });
+      return created;
     });
     return NextResponse.json({ block: { ...block, isDefault: Boolean(isDefault) } }, { status: 201 });
   },

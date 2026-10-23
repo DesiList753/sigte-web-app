@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { auditData } from "@/lib/audit";
 
 const patchSchema = z.object({
   name: z.string().min(2).optional(),
@@ -25,7 +27,7 @@ export const PATCH = withTenant<{ id: string }>(
 
     const target = await prisma.user.findFirst({
       where: { id: params.id, organizationId },
-      select: { id: true, role: true, active: true, universityId: true },
+      select: { id: true, email: true, role: true, active: true, universityId: true },
     });
     if (!target) return jsonError(404, "Usuario no encontrado");
 
@@ -44,10 +46,23 @@ export const PATCH = withTenant<{ id: string }>(
       if (collision) return jsonError(409, "La credencial ya existe en tu organización");
     }
 
-    const user = await prisma.user.update({
-      where: { id: target.id },
-      data: parsed.data,
-      select: { id: true, email: true, name: true, role: true, active: true, universityId: true },
+    const base = { organizationId, actor: session, entity: "USER" as const, entityId: target.id };
+    const logs: Prisma.AuditLogCreateManyInput[] = [];
+    if (role && role !== target.role) {
+      logs.push(auditData({ ...base, action: "ROLE_CHANGE", detail: { email: target.email, from: target.role, to: role } }));
+    }
+    if (active !== undefined && active !== target.active) {
+      logs.push(auditData({ ...base, action: "UPDATE", detail: { email: target.email, active } }));
+    }
+
+    const user = await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: target.id },
+        data: parsed.data,
+        select: { id: true, email: true, name: true, role: true, active: true, universityId: true },
+      });
+      if (logs.length) await tx.auditLog.createMany({ data: logs });
+      return updated;
     });
     return NextResponse.json({ user });
   },
@@ -60,7 +75,7 @@ export const DELETE = withTenant<{ id: string }>(
 
     const target = await prisma.user.findFirst({
       where: { id: params.id, organizationId: session.organizationId },
-      select: { id: true },
+      select: { id: true, email: true, role: true },
     });
     if (!target) return jsonError(404, "Usuario no encontrado");
 
@@ -69,7 +84,19 @@ export const DELETE = withTenant<{ id: string }>(
       return jsonError(409, "No se puede eliminar porque registró infracciones. Desactívalo en su lugar.");
     }
 
-    await prisma.user.delete({ where: { id: target.id } });
+    await prisma.$transaction([
+      prisma.user.delete({ where: { id: target.id } }),
+      prisma.auditLog.create({
+        data: auditData({
+          organizationId: session.organizationId,
+          actor: session,
+          action: "DELETE",
+          entity: "USER",
+          entityId: target.id,
+          detail: { email: target.email, role: target.role },
+        }),
+      }),
+    ]);
     return NextResponse.json({ ok: true });
   },
   { roles: ["ADMIN"] }

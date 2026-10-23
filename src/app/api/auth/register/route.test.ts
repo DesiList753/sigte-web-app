@@ -5,17 +5,20 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({ set: vi.fn(), get: vi.fn(), delete: vi.fn() }),
 }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    organization: { findUnique: vi.fn() },
-    user: {
-      findUnique: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockImplementation(({ data }) =>
-        Promise.resolve({ id: "new-user", role: "USER", ...data })
-      ),
-    },
-  },
-}));
+vi.mock("@/lib/prisma", async () => {
+  const { mockPrismaWithAudit } = await import("@/test/prisma");
+  return {
+    prisma: mockPrismaWithAudit({
+      organization: { findUnique: vi.fn() },
+      user: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockImplementation(({ data }) =>
+          Promise.resolve({ id: "new-user", role: "USER", ...data })
+        ),
+      },
+    }),
+  };
+});
 
 import { prisma } from "@/lib/prisma";
 import { POST } from "./route";
@@ -61,6 +64,9 @@ describe("POST /api/auth/register", () => {
     );
     expect(prisma.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ organizationId: "org-a", role: "USER" }),
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ organizationId: "org-a", action: "CREATE", entity: "USER", actorId: "new-user" }),
     });
   });
 

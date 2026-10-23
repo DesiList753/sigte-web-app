@@ -2,20 +2,23 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    vehicle: {
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-vehicle", ...data })),
-    },
-    user: { findFirst: vi.fn() },
-  },
-}));
+vi.mock("@/lib/prisma", async () => {
+  const { mockPrismaWithAudit } = await import("@/test/prisma");
+  return {
+    prisma: mockPrismaWithAudit({
+      vehicle: {
+        findMany: vi.fn().mockResolvedValue([]),
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-vehicle", ...data })),
+      },
+      user: { findFirst: vi.fn() },
+    }),
+  };
+});
 
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "./route";
-import { ORG_A, ORG_B, onlyInOrg, params, scopedTo, tenantRequest } from "@/test/tenant";
+import { ORG_A, ORG_B, auditedIn, onlyInOrg, params, scopedTo, tenantRequest } from "@/test/tenant";
 
 async function post(role: "USER" | "ADMIN", body: Record<string, unknown>, sub?: string) {
   const req = await tenantRequest("/api/vehicles", { role, sub }, { method: "POST", body });
@@ -50,6 +53,7 @@ describe("POST /api/vehicles", () => {
     expect(prisma.vehicle.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ organizationId: ORG_A, ownerId: "user-a" }) })
     );
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "CREATE", "VEHICLE"));
   });
 
   it("un ADMIN no puede asignar un dueño de otra organización", async () => {

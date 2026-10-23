@@ -109,6 +109,13 @@ export async function getActor() {
   return resolveActor(await getSession());
 }
 
+export async function requirePlatformActor() {
+  const actor = await getActor();
+  if (!actor) redirect("/login");
+  if (actor.role !== "SUPER_ADMIN") redirect(homePath(actor.role));
+  return actor;
+}
+
 export async function requireTenantActor(roles: TenantRole[]) {
   const actor = await getActor();
   if (!actor) redirect("/login");

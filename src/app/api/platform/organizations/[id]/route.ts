@@ -1,0 +1,95 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import type { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { jsonError, parseJson, withPlatform } from "@/lib/api";
+import { auditData } from "@/lib/audit";
+import { slugSchema } from "@/lib/organizations";
+import { usageByOrganization } from "@/lib/usage";
+
+export const GET = withPlatform<{ id: string }>(async (_req, { params }) => {
+  const organization = await prisma.organization.findUnique({
+    where: { id: params.id },
+    include: {
+      plan: { select: { id: true, code: true, name: true } },
+      users: {
+        where: { role: "ADMIN" },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, name: true, email: true, active: true, createdAt: true },
+      },
+    },
+  });
+  if (!organization) return jsonError(404, "Organización no encontrada");
+
+  const usage = await usageByOrganization(organization.id);
+  const { users: admins, ...rest } = organization;
+  return NextResponse.json({ organization: { ...rest, admins, usage: usage.get(organization.id) } });
+});
+
+const patchSchema = z.object({
+  name: z.string().min(2).optional(),
+  displayName: z.string().min(2).optional(),
+  slug: slugSchema.optional(),
+  logoUrl: z
+    .string()
+    .refine((v) => v.startsWith("/") || v.startsWith("https://"), "Usa una URL https o una ruta del sitio")
+    .nullable()
+    .optional(),
+  brandColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Usa un color en formato #RRGGBB")
+    .nullable()
+    .optional(),
+  registrationForm: z.enum(["BASIC", "ACADEMIC"]).optional(),
+  selfRegistration: z.boolean().optional(),
+  allowedEmailDomains: z
+    .array(z.string().regex(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/, "Dominio inválido"))
+    .optional(),
+  planId: z.string().min(1).optional(),
+  status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
+});
+
+export const PATCH = withPlatform<{ id: string }>(async (req, { session, params }) => {
+  const parsed = await parseJson(req, patchSchema);
+  if (!parsed.ok) return parsed.response;
+  const { planId, status, ...fields } = parsed.data;
+
+  const current = await prisma.organization.findUnique({
+    where: { id: params.id },
+    include: { plan: { select: { code: true } } },
+  });
+  if (!current) return jsonError(404, "Organización no encontrada");
+
+  if (fields.slug && fields.slug !== current.slug) {
+    const taken = await prisma.organization.findUnique({ where: { slug: fields.slug }, select: { id: true } });
+    if (taken) return jsonError(409, "Ya existe una organización con ese slug");
+  }
+
+  let plan: { id: string; code: string } | null = null;
+  if (planId && planId !== current.planId) {
+    plan = await prisma.plan.findUnique({ where: { id: planId }, select: { id: true, code: true } });
+    if (!plan) return jsonError(400, "Plan no encontrado");
+  }
+
+  const base = { organizationId: current.id, actor: session, entity: "ORGANIZATION" as const, entityId: current.id };
+  const logs: Prisma.AuditLogCreateManyInput[] = [];
+  const changed = (Object.keys(fields) as (keyof typeof fields)[]).filter(
+    (key) => JSON.stringify(fields[key]) !== JSON.stringify(current[key])
+  );
+  if (changed.length) logs.push(auditData({ ...base, action: "UPDATE", detail: { fields: changed } }));
+  if (plan) logs.push(auditData({ ...base, action: "PLAN_CHANGE", detail: { from: current.plan.code, to: plan.code } }));
+  if (status && status !== current.status) {
+    logs.push(auditData({ ...base, action: status === "SUSPENDED" ? "SUSPEND" : "REACTIVATE" }));
+  }
+
+  const organization = await prisma.$transaction(async (tx) => {
+    const updated = await tx.organization.update({
+      where: { id: current.id },
+      data: { ...fields, ...(plan ? { planId: plan.id } : {}), ...(status ? { status } : {}) },
+    });
+    if (logs.length) await tx.auditLog.createMany({ data: logs });
+    return updated;
+  });
+
+  return NextResponse.json({ organization });
+});

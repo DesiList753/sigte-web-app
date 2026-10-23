@@ -38,9 +38,18 @@ function offsetMs(date: Date) {
   return wall - Math.floor(date.getTime() / 1000) * 1000;
 }
 
-export function startOfDay(date: Date) {
-  const [y, m, d] = dayKey(date).split("-").map(Number);
+function localMidnight(y: number, m: number, d: number) {
   const midnightUtc = Date.UTC(y, m - 1, d);
   const guess = midnightUtc - offsetMs(new Date(midnightUtc));
   return new Date(midnightUtc - offsetMs(new Date(guess)));
+}
+
+export function startOfDay(date: Date) {
+  const [y, m, d] = dayKey(date).split("-").map(Number);
+  return localMidnight(y, m, d);
+}
+
+export function startOfMonth(date: Date) {
+  const [y, m] = dayKey(date).split("-").map(Number);
+  return localMidnight(y, m, 1);
 }

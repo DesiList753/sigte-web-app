@@ -2,19 +2,22 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/actor", () => ({ loadActor: vi.fn() }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    user: {
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-user", ...data })),
-    },
-  },
-}));
+vi.mock("@/lib/prisma", async () => {
+  const { mockPrismaWithAudit } = await import("@/test/prisma");
+  return {
+    prisma: mockPrismaWithAudit({
+      user: {
+        findMany: vi.fn().mockResolvedValue([]),
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-user", ...data })),
+      },
+    }),
+  };
+});
 
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "./route";
-import { ORG_A, params, scopedTo, tenantRequest } from "@/test/tenant";
+import { ORG_A, auditedIn, params, scopedTo, tenantRequest } from "@/test/tenant";
 
 const newUser = { email: "Nuevo@Test.cl", password: "segura1", name: "Nuevo", role: "GUARD" };
 
@@ -49,6 +52,7 @@ describe("POST /api/users", () => {
     expect(prisma.user.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ organizationId: ORG_A, email: "nuevo@test.cl" }) })
     );
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "CREATE", "USER"));
   });
 
   it("revisa la credencial repetida solo dentro de la organización", async () => {
