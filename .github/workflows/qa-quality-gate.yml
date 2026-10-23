@@ -1,0 +1,30 @@
+name: QA Quality Gate
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  run-api-quality-gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Instalar Newman
+        run: npm install -g newman
+
+      - name: Ejecutar pruebas de API (Quality Gate)
+        run: newman run qa-tests/api-tests.json
+
+      - name: Certificacion exitosa
+        if: success()
+        run: echo "Quality Gate APROBADO: Suite de APIs conforme a estandares de integracion."
