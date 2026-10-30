@@ -35,6 +35,14 @@ export function PortalShell({ tabs, userName, brand, organizations, currentOrgan
           </Link>
           <div style={{ flex: 1 }} />
           <OrgSwitcher options={organizations} current={currentOrganizationId} />
+          <Link href="/user/notifications" className="btn ghost icon" title="Notificaciones" aria-label="Notificaciones" style={{ position: "relative" }}>
+            <I name="bell" size={18} />
+            {unreadCount > 0 && (
+              <span style={{ position: "absolute", top: 3, right: 3 }}>
+                <CountPill count={unreadCount} />
+              </span>
+            )}
+          </Link>
           <ThemeToggle />
           <span className="avatar">{ini || "…"}</span>
           <button className="btn ghost icon" onClick={logout} title="Cerrar sesión"><I name="logout" size={18} /></button>
