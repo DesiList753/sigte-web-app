@@ -16,6 +16,9 @@ vi.mock("@/lib/prisma", async () => {
         count: vi.fn().mockResolvedValue(0),
         create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: "new-block", ...data })),
       },
+      parkingEvent: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       vehicle: { count: vi.fn().mockResolvedValue(3) },
     }),
   };
@@ -41,6 +44,23 @@ describe("GET /api/parking", () => {
     expect(prisma.organization.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: ORG_A } }));
     expect(body.blocks[0]).toMatchObject({ id: "default-a", isDefault: true });
     expect(body.totals).toEqual({ inside: 3, capacity: 60, free: 57, defaultBlockId: "default-a" });
+  });
+
+  it("descuenta los cupos libres cuando un bloque está cerrado por un evento activo", async () => {
+    vi.mocked(prisma.parkingEvent.findMany).mockResolvedValueOnce([
+      {
+        id: "ev-1",
+        title: "Exposición",
+        kind: "EVENT",
+        endsAt: null,
+        blocks: [{ blockId: "block-a" }],
+      },
+    ] as never);
+    const res = await GET(await tenantRequest("/api/parking", { role: "GUARD" }), params({}));
+    const body = await res.json();
+    const closed = body.blocks.find((b: { id: string }) => b.id === "block-a");
+    expect(closed).toMatchObject({ entryAllowed: false, free: 0, closedReason: "Exposición" });
+    expect(body.totals.free).toBe(49);
   });
 });
 

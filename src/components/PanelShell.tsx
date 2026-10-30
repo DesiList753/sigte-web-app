@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { I } from "@/components/Icon";
+import { ActiveEventsBanner } from "@/components/ActiveEventsBanner";
+import { CountPill, useUnreadNotifications } from "@/components/NotificationsBadge";
 import { OrgBrand, ProductBrand } from "@/components/ui-system";
 import { OrgSwitcher, type OrgOption } from "@/components/OrgSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -12,7 +14,7 @@ import { orgTheme } from "@/lib/theme";
 export interface PanelNavItem { href: string; label: string; icon: string; }
 export interface PanelNavGroup { grp: string; items: PanelNavItem[]; }
 
-function Sidebar({ groups, brand, open, onClose }: { groups: PanelNavGroup[]; brand?: OrganizationBrand; open: boolean; onClose: () => void }) {
+function Sidebar({ groups, brand, unreadCount, open, onClose }: { groups: PanelNavGroup[]; brand?: OrganizationBrand; unreadCount: number; open: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const activeHref = groups
@@ -42,6 +44,7 @@ function Sidebar({ groups, brand, open, onClose }: { groups: PanelNavGroup[]; br
                 <Link key={it.href} href={it.href} onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 10px", marginBottom: 2, borderRadius: 8, background: on ? "rgba(255,255,255,.14)" : "transparent", color: on ? "#fff" : "rgba(255,255,255,.78)", fontFamily: "var(--ff-body)", fontSize: 13.5, fontWeight: on ? 600 : 400 }}>
                   <I name={it.icon} size={18} stroke={1.9} />
                   <span style={{ flex: 1 }}>{it.label}</span>
+                  {it.icon === "bell" && <CountPill count={unreadCount} light />}
                 </Link>
               );
             })}
@@ -55,10 +58,10 @@ function Sidebar({ groups, brand, open, onClose }: { groups: PanelNavGroup[]; br
   );
 }
 
-function TopBar({ title, subtitle, userName, userRole, organizations, currentOrganizationId, onBurger }: { title: string; subtitle: string; userName: string; userRole: string; organizations?: OrgOption[]; currentOrganizationId?: string; onBurger: () => void }) {
+function TopBar({ title, subtitle, userName, userRole, organizations, currentOrganizationId, notificationsHref, unreadCount, onBurger }: { title: string; subtitle: string; userName: string; userRole: string; organizations?: OrgOption[]; currentOrganizationId?: string; notificationsHref?: string; unreadCount: number; onBurger: () => void }) {
   const ini = userName.split(/[\s.]/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
-    <header style={{ height: 62, flex: "none", background: "var(--surface)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 16, padding: "0 16px" }}>
+    <header style={{ height: 62, flex: "none", background: "var(--surface)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
       <button className="panel-burger" onClick={onBurger} aria-label="Abrir menú">
         <I name="menu" size={22} />
       </button>
@@ -68,6 +71,22 @@ function TopBar({ title, subtitle, userName, userRole, organizations, currentOrg
       </div>
       <div style={{ flex: 1 }} />
       {organizations && currentOrganizationId && <OrgSwitcher options={organizations} current={currentOrganizationId} />}
+      {notificationsHref && (
+        <Link
+          href={notificationsHref}
+          className="btn ghost icon"
+          title="Notificaciones"
+          aria-label="Notificaciones"
+          style={{ position: "relative" }}
+        >
+          <I name="bell" size={18} />
+          {unreadCount > 0 && (
+            <span style={{ position: "absolute", top: 3, right: 3 }}>
+              <CountPill count={unreadCount} />
+            </span>
+          )}
+        </Link>
+      )}
       <ThemeToggle />
       <div style={{ display: "flex", alignItems: "center", gap: 9, paddingLeft: 6, borderLeft: "1px solid var(--line)" }}>
         <span className="avatar">{ini || "…"}</span>
@@ -80,18 +99,22 @@ function TopBar({ title, subtitle, userName, userRole, organizations, currentOrg
   );
 }
 
-export function PanelShell({ groups, title, subtitle, userName, userRole, brand, organizations, currentOrganizationId, children }: {
-  groups: PanelNavGroup[]; title: string; subtitle: string; userName: string; userRole: string; brand?: OrganizationBrand; organizations?: OrgOption[]; currentOrganizationId?: string; children: ReactNode;
+export function PanelShell({ groups, title, subtitle, userName, userRole, brand, organizations, currentOrganizationId, notificationsHref, showEventsBanner, children }: {
+  groups: PanelNavGroup[]; title: string; subtitle: string; userName: string; userRole: string; brand?: OrganizationBrand; organizations?: OrgOption[]; currentOrganizationId?: string; notificationsHref?: string; showEventsBanner?: boolean; children: ReactNode;
 }) {
   const [navOpen, setNavOpen] = useState(false);
+  const unreadCount = useUnreadNotifications();
   const theme = orgTheme(brand?.brandColor);
   return (
     <div className={theme.className} style={{ height: "100vh", display: "flex", ...theme.style }}>
-      <Sidebar groups={groups} brand={brand} open={navOpen} onClose={() => setNavOpen(false)} />
+      <Sidebar groups={groups} brand={brand} unreadCount={unreadCount} open={navOpen} onClose={() => setNavOpen(false)} />
       {navOpen && <div className="panel-overlay" onClick={() => setNavOpen(false)} />}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <TopBar title={title} subtitle={subtitle} userName={userName} userRole={userRole} organizations={organizations} currentOrganizationId={currentOrganizationId} onBurger={() => setNavOpen(true)} />
-        <main style={{ flex: 1, overflowY: "auto", background: "var(--bg)" }}>{children}</main>
+        <TopBar title={title} subtitle={subtitle} userName={userName} userRole={userRole} organizations={organizations} currentOrganizationId={currentOrganizationId} notificationsHref={notificationsHref} unreadCount={unreadCount} onBurger={() => setNavOpen(true)} />
+        <main style={{ flex: 1, overflowY: "auto", background: "var(--bg)" }}>
+          {showEventsBanner && <ActiveEventsBanner compact />}
+          {children}
+        </main>
       </div>
     </div>
   );

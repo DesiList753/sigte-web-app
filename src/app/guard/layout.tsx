@@ -11,6 +11,7 @@ const items: (PanelNavItem & { feature?: PlanFeature })[] = [
   { href: "/guard/search", label: "Buscar vehículo", icon: "search" },
   { href: "/guard/infractions", label: "Infracciones", icon: "shieldAlert", feature: "INFRACTIONS" },
   { href: "/guard/history", label: "Historial", icon: "history" },
+  { href: "/guard/notifications", label: "Notificaciones", icon: "bell" },
 ];
 
 export default async function GuardLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +21,18 @@ export default async function GuardLayout({ children }: { children: React.ReactN
   const groups = [{ grp: "Operación", items: items.filter((it) => !it.feature || features.includes(it.feature)) }];
   return (
     <PlanProvider features={features}>
-      <PanelShell groups={groups} title="Guardia" subtitle="Operación de pórtico" brand={session.organization} organizations={organizations} currentOrganizationId={session.organizationId} userName={session.name} userRole="Guardia">
+      <PanelShell
+        groups={groups}
+        title="Guardia"
+        subtitle="Operación de pórtico"
+        brand={session.organization}
+        organizations={organizations}
+        currentOrganizationId={session.organizationId}
+        notificationsHref="/guard/notifications"
+        showEventsBanner
+        userName={session.name}
+        userRole="Guardia"
+      >
         {children}
       </PanelShell>
       <Toaster richColors position="top-right" />

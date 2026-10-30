@@ -31,9 +31,9 @@ Cada persona tiene una sola cuenta, identificada por su correo. Esa cuenta puede
 | Rol | Qué hace | Panel |
 |-----|----------|-------|
 | VanillaSoft (`SUPER_ADMIN`) | Crea, edita y suspende organizaciones. Asigna planes. Ve la auditoría de todas. | `/platform` |
-| Administración (`ADMIN`) | Administra su organización: usuarios, guardias, bloques, vehículos, infracciones y configuración. | `/admin` |
-| Guardia (`GUARD`) | Registra entradas y salidas, y ve la ocupación en vivo. | `/guard` |
-| Conductor (`USER`) | Registra sus vehículos, genera su QR y ve sus accesos. | `/user` |
+| Administración (`ADMIN`) | Administra su organización: usuarios, guardias, bloques, eventos y avisos, vehículos, infracciones y configuración. | `/admin` |
+| Guardia (`GUARD`) | Registra entradas y salidas, ve la ocupación en vivo y recibe avisos operativos. | `/guard` |
+| Conductor (`USER`) | Registra sus vehículos, genera su QR, ve sus accesos y recibe notificaciones y avisos. | `/user` |
 
 ### Planes
 

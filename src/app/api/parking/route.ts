@@ -3,11 +3,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { auditData } from "@/lib/audit";
+import { loadBlockingEventsByBlock } from "@/lib/events";
 import { limitBlock } from "@/lib/plan";
 
 export const GET = withTenant(async (_req, { session }) => {
   const organizationId = session.organizationId;
-  const [org, blocks, insideCount] = await Promise.all([
+  const [org, blocks, insideCount, blockingByBlock] = await Promise.all([
     prisma.organization.findUnique({ where: { id: organizationId }, select: { defaultBlockId: true } }),
     prisma.parkingBlock.findMany({
       where: { organizationId },
@@ -15,6 +16,7 @@ export const GET = withTenant(async (_req, { session }) => {
       include: { _count: { select: { vehicles: true } } },
     }),
     prisma.vehicle.count({ where: { organizationId, currentBlockId: { not: null } } }),
+    loadBlockingEventsByBlock(organizationId),
   ]);
 
   const defaultBlockId = org?.defaultBlockId ?? null;
@@ -23,20 +25,41 @@ export const GET = withTenant(async (_req, { session }) => {
     (a, b) => Number(b.id === defaultBlockId) - Number(a.id === defaultBlockId)
   );
 
-  return NextResponse.json({
-    blocks: ordered.map((b) => ({
+  const mappedBlocks = ordered.map((b) => {
+    const active = b.active !== false;
+    const blockingEvent = blockingByBlock.get(b.id) ?? null;
+    const entryAllowed = active && !blockingEvent;
+    const closedReason = !active
+      ? "Bloque desactivado"
+      : blockingEvent
+      ? blockingEvent.title
+      : null;
+    return {
       id: b.id,
       name: b.name,
       description: b.description,
       capacity: b.capacity,
+      active,
+      entryAllowed,
+      closedReason,
+      blockingEvent,
       isDefault: b.id === defaultBlockId,
       occupied: b._count.vehicles,
-      free: Math.max(0, b.capacity - b._count.vehicles),
-    })),
+      free: entryAllowed ? Math.max(0, b.capacity - b._count.vehicles) : 0,
+    };
+  });
+
+  const hasClosedBlock = mappedBlocks.some((b) => !b.entryAllowed);
+  const freeTotal = hasClosedBlock
+    ? mappedBlocks.reduce((sum, b) => sum + b.free, 0)
+    : Math.max(0, totalCapacity - insideCount);
+
+  return NextResponse.json({
+    blocks: mappedBlocks,
     totals: {
       inside: insideCount,
       capacity: totalCapacity,
-      free: Math.max(0, totalCapacity - insideCount),
+      free: freeTotal,
       defaultBlockId,
     },
   });

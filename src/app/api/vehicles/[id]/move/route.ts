@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { findBlockingEventForBlock } from "@/lib/events";
 
 const moveSchema = z.object({
   blockId: z.string().min(1),
@@ -28,6 +29,13 @@ export const POST = withTenant<{ id: string }>(
 
     if (vehicle.currentBlockId === target.id)
       return jsonError(400, "El vehículo ya está en ese bloque");
+
+    if (target.active === false)
+      return jsonError(409, `El bloque ${target.name} tiene el ingreso desactivado`);
+
+    const blockingEvent = await findBlockingEventForBlock(organizationId, target.id);
+    if (blockingEvent)
+      return jsonError(409, `Ingreso cerrado en ${target.name} por evento: ${blockingEvent.title}`);
 
     const from = vehicle.currentBlock?.name ?? "—";
 

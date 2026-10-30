@@ -236,6 +236,9 @@ code,.mono{font-family:var(--ff-mono)}
 .lot.high{background:var(--no)}
 .lot.full{background:var(--ink-700)}
 .dark .lot.full{background:#33424E}
+.lot.closed{background:repeating-linear-gradient(-45deg,#64242c,#64242c 10px,#4b1a20 10px,#4b1a20 20px)}
+.dark .lot.closed{background:repeating-linear-gradient(-45deg,#4b1a20,#4b1a20 10px,#351116 10px,#351116 20px)}
+.lot .bp{font-size:11.5px;font-family:var(--ff-body);margin-top:3px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lot .meter{height:5px;background:rgba(255,255,255,.28);border-radius:3px;margin-top:10px;overflow:hidden}
 .lot .meter i{display:block;height:100%;background:rgba(255,255,255,.9);border-radius:3px;transition:width .6s ease}
 .lot.mid .meter{background:rgba(61,47,0,.2)} .lot.mid .meter i{background:rgba(61,47,0,.85)}

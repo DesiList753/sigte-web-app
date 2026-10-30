@@ -53,6 +53,35 @@ enum AuditEntity {
   PARKING_BLOCK
   INFRACTION
   PLAN
+  EVENT
+}
+
+enum EventKind {
+  EVENT
+  EMERGENCY
+  MAINTENANCE
+  NOTICE
+}
+
+enum EventStatus {
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+enum EventAudience {
+  ALL
+  USERS
+  GUARDS
+  AFFECTED_VEHICLES
+}
+
+enum NotificationKind {
+  SYSTEM
+  EVENT
+  EMERGENCY
+  MAINTENANCE
+  NOTICE
 }
 
 model Plan {
@@ -91,6 +120,7 @@ model Organization {
   memberships   Membership[]
   vehicles      Vehicle[]
   blocks        ParkingBlock[] @relation("OrganizationBlocks")
+  events        ParkingEvent[]
   accessLogs    AccessLog[]
   infractions   Infraction[]
   notifications Notification[]
@@ -120,6 +150,7 @@ model User {
   reportedInfractions Infraction[]         @relation("GuardInfractions")
   resolvedInfractions Infraction[]         @relation("ResolvedInfractions")
   resetTokens         PasswordResetToken[]
+  createdEvents       ParkingEvent[]       @relation("CreatedEvents")
   auditLogs           AuditLog[]
 }
 
@@ -187,14 +218,52 @@ model ParkingBlock {
   name           String
   description    String?
   capacity       Int
+  active         Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  defaultOf  Organization? @relation("DefaultBlock")
-  vehicles   Vehicle[]
-  accessLogs AccessLog[]
+  defaultOf   Organization?       @relation("DefaultBlock")
+  vehicles    Vehicle[]
+  accessLogs  AccessLog[]
+  eventBlocks ParkingEventBlock[]
 
   @@unique([organizationId, name])
+}
+
+model ParkingEvent {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  createdById    String?
+  createdBy      User?         @relation("CreatedEvents", fields: [createdById], references: [id], onDelete: SetNull)
+  title          String
+  description    String
+  kind           EventKind     @default(EVENT)
+  status         EventStatus   @default(ACTIVE)
+  disableEntry   Boolean       @default(true)
+  showBanner     Boolean       @default(true)
+  audience       EventAudience @default(ALL)
+  startsAt       DateTime      @default(now())
+  endsAt         DateTime?
+  endedAt        DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  blocks        ParkingEventBlock[]
+  notifications Notification[]
+
+  @@index([organizationId, status, startsAt])
+}
+
+model ParkingEventBlock {
+  eventId    String
+  event      ParkingEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  blockId    String
+  block      ParkingBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  releasedAt DateTime?
+
+  @@id([eventId, blockId])
+  @@index([blockId])
 }
 
 enum AccessDirection {
@@ -275,16 +344,20 @@ model Infraction {
 }
 
 model Notification {
-  id             String       @id @default(cuid())
+  id             String           @id @default(cuid())
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization     @relation(fields: [organizationId], references: [id])
   userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId        String?
+  event          ParkingEvent?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  kind           NotificationKind @default(SYSTEM)
   title          String
   message        String
-  read           Boolean      @default(false)
-  createdAt      DateTime     @default(now())
+  read           Boolean          @default(false)
+  createdAt      DateTime         @default(now())
 
+  @@index([organizationId, userId, createdAt])
   @@index([userId, createdAt])
 }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withTenant } from "@/lib/api";
+import { loadBlockingEventsByBlock } from "@/lib/events";
 import { limitUsage } from "@/lib/plan";
 import { dayKey, hourOf, startOfDay } from "@/lib/time";
 
@@ -18,7 +19,7 @@ export const GET = withTenant(async (_req, { session }) => {
         where: { organizationId, vehicle: { ownerId: session.sub }, timestamp: { gte: todayStart } },
       }),
       prisma.infraction.count({ where: { organizationId, userId: session.sub, status: "OPEN" } }),
-      prisma.notification.count({ where: { userId: session.sub, read: false } }),
+      prisma.notification.count({ where: { organizationId, userId: session.sub, read: false } }),
     ]);
     return NextResponse.json({
       scope: "user",
@@ -100,13 +101,28 @@ export const GET = withTenant(async (_req, { session }) => {
   const avgDailyAccess = Math.round(series.reduce((s, d) => s + d.in + d.out, 0) / 7);
   const authRate = recentLogs.length > 0 ? Math.round((authorizedLast7 / recentLogs.length) * 100) : 100;
 
-  const occupancy = blocks.map((b) => ({
-    id: b.id,
-    name: b.name,
-    capacity: b.capacity,
-    occupied: b._count.vehicles,
-    percentage: Math.round((b._count.vehicles / b.capacity) * 100),
-  }));
+  const blockingByBlock = await loadBlockingEventsByBlock(organizationId, now);
+
+  const occupancy = blocks.map((b) => {
+    const active = b.active !== false;
+    const blockingEvent = blockingByBlock.get(b.id) ?? null;
+    const entryAllowed = active && !blockingEvent;
+    const closedReason = !active
+      ? "Bloque desactivado"
+      : blockingEvent
+      ? blockingEvent.title
+      : null;
+    return {
+      id: b.id,
+      name: b.name,
+      capacity: b.capacity,
+      occupied: b._count.vehicles,
+      percentage: Math.round((b._count.vehicles / b.capacity) * 100),
+      active,
+      entryAllowed,
+      closedReason,
+    };
+  });
 
   const topRows = topVehiclesRaw.length
     ? await prisma.vehicle.findMany({

@@ -8,6 +8,7 @@ const updateSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
   capacity: z.number().int().min(1).optional(),
+  active: z.boolean().optional(),
   isDefault: z.boolean().optional(),
 });
 
@@ -35,12 +36,27 @@ export const PATCH = withTenant<{ id: string }>(
       if (clash) return jsonError(409, "Ya existe un bloque con ese nombre");
     }
 
-    const block = await prisma.parkingBlock.update({
-      where: { id: target.id },
-      data: {
-        ...data,
-        ...(isDefault ? { defaultOf: { connect: { id: organizationId } } } : {}),
-      },
+    const block = await prisma.$transaction(async (tx) => {
+      const updated = await tx.parkingBlock.update({
+        where: { id: target.id },
+        data: {
+          ...data,
+          ...(isDefault ? { defaultOf: { connect: { id: organizationId } } } : {}),
+        },
+      });
+      if (data.active !== undefined && data.active !== (target.active ?? true)) {
+        await tx.auditLog.create({
+          data: auditData({
+            organizationId,
+            actor: session,
+            action: data.active ? "REACTIVATE" : "SUSPEND",
+            entity: "PARKING_BLOCK",
+            entityId: target.id,
+            detail: { name: updated.name, active: data.active },
+          }),
+        });
+      }
+      return updated;
     });
     return NextResponse.json({ block: { ...block, isDefault: isDefault ?? Boolean(target.defaultOf) } });
   },

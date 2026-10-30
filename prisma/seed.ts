@@ -1,8 +1,10 @@
 import {
   PrismaClient,
   type AccessMethod,
+  type EventKind,
   type InfractionStatus,
   type InfractionType,
+  type NotificationKind,
   type PlanFeature,
   type Prisma,
   type RegistrationForm,
@@ -51,10 +53,21 @@ type InfractionDef = {
 
 type NotificationDef = {
   email: string;
+  kind?: NotificationKind;
   title: string;
   message: string;
   read: boolean;
   at: [number, number, number];
+};
+
+type EventDef = {
+  title: string;
+  description: string;
+  kind: EventKind;
+  blocks: string[];
+  disableEntry: boolean;
+  startsOffsetHours: number;
+  endsOffsetHours: number | null;
 };
 
 type OrgDef = {
@@ -73,6 +86,7 @@ type OrgDef = {
   vehicles: VehicleDef[];
   infractions: InfractionDef[];
   notifications: NotificationDef[];
+  events?: EventDef[];
   activityDays: number;
 };
 
@@ -177,6 +191,28 @@ const USM: OrgDef = {
     { email: "diego@usm.cl", title: "Vehículo no autorizado", message: "Se detectó un intento de ingreso con tu vehículo FFGG19 que no tiene autorización activa.", read: false, at: [2, 18, 40] },
     { email: "jose@usm.cl", title: "Infracción — Bloque incorrecto", message: "Tu vehículo GGHH78 fue registrado en sector no autorizado. Estado: Notificado.", read: false, at: [4, 13, 25] },
     { email: "user@usm.cl", title: "Permiso próximo a vencer", message: "El permiso de tu vehículo CCDD34 está próximo a vencer. Renuévalo en Administración.", read: false, at: [7, 10, 5] },
+    { email: "user@usm.cl", kind: "EVENT", title: "Exposición Tecnológica — Sector Superior", message: "Estacionamiento 5 permanece cerrado al ingreso por montaje de feria estudiantil. Prefiere Estacionamientos 1 y 2.", read: false, at: [0, 8, 30] },
+    { email: "guardia@usm.cl", kind: "EVENT", title: "Exposición Tecnológica — Sector Superior", message: "Estacionamiento 5 cerrado al ingreso hoy por montaje de stands.", read: false, at: [0, 8, 30] },
+  ],
+  events: [
+    {
+      title: "Exposición Tecnológica — Sector Superior",
+      description: "Estacionamiento 5 reservado para montaje y stands de exposición estudiantil. Favor utilizar Estacionamientos 1, 2 o 4.",
+      kind: "EVENT",
+      blocks: ["Estacionamiento 5"],
+      disableEntry: true,
+      startsOffsetHours: -2,
+      endsOffsetHours: 8,
+    },
+    {
+      title: "Feria de Innovación en Estacionamientos 3 y 4",
+      description: "Cierre programado de ingreso durante la jornada de exposición de proyectos.",
+      kind: "EVENT",
+      blocks: ["Estacionamiento 3", "Estacionamiento 4"],
+      disableEntry: true,
+      startsOffsetHours: 48,
+      endsOffsetHours: 58,
+    },
   ],
   activityDays: 29,
 };
@@ -351,6 +387,7 @@ async function seedOrganization(def: OrgDef, planIds: Record<string, string>) {
   await prisma.accessLog.deleteMany({ where: { organizationId: org.id } });
   await prisma.infraction.deleteMany({ where: { organizationId: org.id } });
   await prisma.notification.deleteMany({ where: { organizationId: org.id } });
+  await prisma.parkingEvent.deleteMany({ where: { organizationId: org.id } });
 
   const guardIds = def.users.filter((u) => u.role === "GUARD").map((u) => userIds[u.email]);
   const fallbackBlockId = blockIds[def.blocks[0].name];
@@ -423,12 +460,38 @@ async function seedOrganization(def: OrgDef, planIds: Record<string, string>) {
     data: def.notifications.map((n) => ({
       organizationId: org.id,
       userId: userIds[n.email],
+      kind: n.kind ?? "SYSTEM",
       title: n.title,
       message: n.message,
       read: n.read,
       createdAt: ago(...n.at),
     })),
   });
+
+  const adminUser = def.users.find((u) => u.role === "ADMIN");
+  for (const ev of def.events ?? []) {
+    const startsAt = new Date(Date.now() + ev.startsOffsetHours * 3600_000);
+    const endsAt =
+      ev.endsOffsetHours !== null ? new Date(Date.now() + ev.endsOffsetHours * 3600_000) : null;
+    await prisma.parkingEvent.create({
+      data: {
+        organizationId: org.id,
+        createdById: adminUser ? userIds[adminUser.email] : null,
+        title: ev.title,
+        description: ev.description,
+        kind: ev.kind,
+        status: "ACTIVE",
+        disableEntry: ev.disableEntry,
+        showBanner: true,
+        audience: "ALL",
+        startsAt,
+        endsAt,
+        blocks: {
+          create: ev.blocks.map((name) => ({ blockId: blockIds[name] })),
+        },
+      },
+    });
+  }
 
   console.log(
     `  ${def.displayName}: ${def.blocks.length + 1} bloques | ${def.users.length} usuarios | ${def.vehicles.length} vehículos | ${logs.length} accesos | ${def.infractions.length} infracciones | ${def.notifications.length} notificaciones`,

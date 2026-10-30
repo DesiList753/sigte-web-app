@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Card, Modal, Plate, Badge, LotGrid } from "@/components/ui-system";
 import { I } from "@/components/Icon";
@@ -13,6 +14,9 @@ type Block = {
   capacity: number;
   occupied: number;
   free: number;
+  active: boolean;
+  entryAllowed: boolean;
+  closedReason: string | null;
   isDefault: boolean;
 };
 
@@ -141,6 +145,23 @@ export default function AdminParking() {
     load();
   }
 
+  async function toggleActive(b: Block) {
+    const nextActive = !b.active;
+    const r = await fetch(`/api/parking/${b.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: nextActive }),
+    });
+    const data = await r.json();
+    if (!r.ok) return toast.error(data.error ?? "Error al actualizar bloque");
+    toast.success(
+      nextActive
+        ? `Ingreso habilitado en ${b.name}`
+        : `Ingreso desactivado en ${b.name}`
+    );
+    load();
+  }
+
   async function rename(b: Block) {
     if (cancelRef.current) { cancelRef.current = false; return; }   // cancelado con Escape
     if (savingRef.current) return;                                   // ya se está guardando (blur tras Enter)
@@ -189,18 +210,25 @@ export default function AdminParking() {
     nombre: b.name,
     ocup: b.occupied,
     cap: b.capacity,
-    ...lotLevel(b.occupied, b.capacity),
+    ...lotLevel(b.occupied, b.capacity, {
+      entryAllowed: b.entryAllowed,
+      closedReason: b.closedReason,
+    }),
   }));
 
   return (
     <div style={{ padding: 24 }}>
-      <div className="row between" style={{ marginBottom: 20 }}>
+      <div className="row between" style={{ marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Bloques de estacionamiento</h1>
           <p className="muted" style={{ fontSize: 13 }}>
-            Configuración de zonas y capacidad. Haz click en un bloque para gestionar los vehículos dentro.
+            Configuración de zonas, activación rápida y capacidad. Haz click en un bloque para gestionar los vehículos dentro.
           </p>
         </div>
+        <Link href="/admin/events" className="btn secondary">
+          <I name="calendar" size={16} />
+          Eventos y avisos
+        </Link>
       </div>
 
       {totals && (
@@ -219,8 +247,11 @@ export default function AdminParking() {
             </div>
           </Card>
           <Card pad="sm" style={{ flex: 1, minWidth: 160 }}>
-            <div className="muted" style={{ fontSize: 12 }}>Bloques activos</div>
-            <div className="mono" style={{ fontSize: 28, fontWeight: 700 }}>{blocks.length}</div>
+            <div className="muted" style={{ fontSize: 12 }}>Bloques habilitados</div>
+            <div className="mono" style={{ fontSize: 28, fontWeight: 700 }}>
+              {blocks.filter((b) => b.entryAllowed).length}
+              <span className="muted" style={{ fontSize: 16 }}> / {blocks.length}</span>
+            </div>
           </Card>
         </div>
       )}
@@ -266,13 +297,21 @@ export default function AdminParking() {
           </thead>
           <tbody>
             {blocks.map((b) => {
-              const lvl = lotLevel(b.occupied, b.capacity);
-              const kind = lvl.level === "full" || lvl.level === "high" ? "no" : lvl.level === "mid" ? "wait" : "go";
+              const lvl = lotLevel(b.occupied, b.capacity, {
+                entryAllowed: b.entryAllowed,
+                closedReason: b.closedReason,
+              });
+              const kind =
+                lvl.level === "closed" || lvl.level === "full" || lvl.level === "high"
+                  ? "no"
+                  : lvl.level === "mid"
+                  ? "wait"
+                  : "go";
               return (
                 <tr key={b.id} style={{ cursor: "pointer" }} onClick={() => openBlock(b)}>
                   <td>
                     <div className="row" style={{ gap: 8, alignItems: "center" }}>
-                      <I name="parking" size={16} />
+                      <I name={b.entryAllowed ? "parking" : "lock"} size={16} />
                       {editingName === b.id ? (
                         <input
                           autoFocus
@@ -315,6 +354,13 @@ export default function AdminParking() {
                   </td>
                   <td onClick={(e) => e.stopPropagation()}>
                     <span className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
+                      <button
+                        className="btn ghost icon"
+                        title={b.active ? "Desactivar ingreso al bloque" : "Habilitar ingreso al bloque"}
+                        onClick={() => toggleActive(b)}
+                      >
+                        <I name={b.active ? "lock" : "unlock"} size={16} />
+                      </button>
                       <button className="btn ghost icon" title="Ver vehículos" onClick={() => openBlock(b)}>
                         <I name="car" size={16} />
                       </button>
@@ -478,8 +524,8 @@ function VehicleCard({
         >
           <option value="">Reasignar bloque…</option>
           {blocks.map((b) => (
-            <option key={b.id} value={b.id} disabled={b.free <= 0}>
-              {b.name} · {b.free}/{b.capacity} libres
+            <option key={b.id} value={b.id} disabled={!b.entryAllowed || b.free <= 0}>
+              {b.name} · {b.entryAllowed ? `${b.free}/${b.capacity} libres` : `Cerrado (${b.closedReason ?? "sin ingreso"})`}
             </option>
           ))}
         </select>
@@ -555,8 +601,8 @@ function VehicleDetailDialog({
           <select id="reasignar-bloque" className="select" style={{ flex: 1 }} value={target} onChange={(e) => setTarget(e.target.value)}>
             <option value="">Seleccionar nuevo bloque…</option>
             {blocks.map((b) => (
-              <option key={b.id} value={b.id} disabled={b.free <= 0}>
-                {b.name} · {b.free}/{b.capacity} libres
+              <option key={b.id} value={b.id} disabled={!b.entryAllowed || b.free <= 0}>
+                {b.name} · {b.entryAllowed ? `${b.free}/${b.capacity} libres` : `Cerrado (${b.closedReason ?? "sin ingreso"})`}
               </option>
             ))}
           </select>

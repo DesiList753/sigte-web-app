@@ -14,6 +14,7 @@ vi.mock("@/lib/prisma", () => ({
     },
     infraction: { count: vi.fn().mockResolvedValue(0) },
     notification: { count: vi.fn().mockResolvedValue(0) },
+    parkingEvent: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }));
 
@@ -52,6 +53,9 @@ describe("GET /api/dashboard", () => {
     expect(prisma.vehicle.count).toHaveBeenCalledWith({ where: { organizationId: ORG_A, ownerId: "user-a" } });
     expect(prisma.infraction.count).toHaveBeenCalledWith({
       where: { organizationId: ORG_A, userId: "user-a", status: "OPEN" },
+    });
+    expect(prisma.notification.count).toHaveBeenCalledWith({
+      where: { organizationId: ORG_A, userId: "user-a", read: false },
     });
   });
 

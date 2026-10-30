@@ -27,7 +27,15 @@ type Dashboard = {
     peakHour: string | null;
   };
   series: { date: string; in: number; out: number }[];
-  occupancy: { id: string; name: string; capacity: number; occupied: number; percentage: number }[];
+  occupancy: {
+    id: string;
+    name: string;
+    capacity: number;
+    occupied: number;
+    percentage: number;
+    entryAllowed?: boolean;
+    closedReason?: string | null;
+  }[];
   topVehicles: { plate: string; owner: string; count: number }[];
   methodDist: Record<string, number>;
 };
@@ -61,7 +69,10 @@ export default function AdminDashboard() {
     nombre: b.name,
     ocup: b.occupied,
     cap: b.capacity,
-    ...lotLevel(b.occupied, b.capacity),
+    ...lotLevel(b.occupied, b.capacity, {
+      entryAllowed: b.entryAllowed,
+      closedReason: b.closedReason,
+    }),
   }));
 
   return (

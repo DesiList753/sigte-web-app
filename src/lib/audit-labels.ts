@@ -16,11 +16,17 @@ export const ENTITY_LABEL: Record<string, string> = {
   PARKING_BLOCK: "Bloque",
   INFRACTION: "Infracción",
   PLAN: "Plan",
+  EVENT: "Evento",
 };
 
 const DETAIL_LABEL: Record<string, string> = {
   email: "Correo",
   name: "Nombre",
+  title: "Título",
+  kind: "Tipo",
+  blocks: "Bloques",
+  disableEntry: "Cierra ingreso",
+  notified: "Notificados",
   plate: "Patente",
   role: "Rol",
   status: "Estado",
@@ -56,6 +62,12 @@ const VALUE_LABEL: Record<string, string> = {
   ADMIN: "Administrador",
   RESOLVED: "Resuelta",
   DISMISSED: "Descartada",
+  EVENT: "Evento",
+  EMERGENCY: "Urgencia",
+  MAINTENANCE: "Mantención",
+  NOTICE: "Aviso",
+  ENDED: "Finalizado",
+  CANCELLED: "Cancelado",
 };
 
 function formatValue(key: string, value: unknown): string {

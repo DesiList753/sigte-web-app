@@ -14,6 +14,8 @@ type Block = {
   capacity: number;
   occupied: number;
   free: number;
+  entryAllowed?: boolean;
+  closedReason?: string | null;
   isDefault: boolean;
 };
 
@@ -128,7 +130,10 @@ export default function GuardLive() {
     nombre: b.name,
     ocup: b.occupied,
     cap: b.capacity,
-    ...lotLevel(b.occupied, b.capacity),
+    ...lotLevel(b.occupied, b.capacity, {
+      entryAllowed: b.entryAllowed,
+      closedReason: b.closedReason,
+    }),
   }));
 
   return (
@@ -185,6 +190,7 @@ export default function GuardLive() {
             className={"btn " + (activeBlockId === b.id ? "primary" : "ghost")}
             onClick={() => setActiveBlockId(b.id)}
           >
+            {b.entryAllowed === false ? <I name="lock" size={14} /> : null}
             {b.isDefault ? "⭐ " : ""}
             {b.name} · {b.occupied}
             {b.capacity > 0 ? `/${b.capacity}` : ""}
@@ -334,11 +340,17 @@ function VehicleDialog({
             <option value="">Seleccionar nuevo bloque…</option>
             {blocks
               .filter((b) => b.id !== vehicle.currentBlock?.id)
-              .map((b) => (
-                <option key={b.id} value={b.id} disabled={b.free <= 0}>
-                  {b.name} · {b.free}/{b.capacity} libres
-                </option>
-              ))}
+              .map((b) => {
+                const closed = b.entryAllowed === false;
+                return (
+                  <option key={b.id} value={b.id} disabled={closed || b.free <= 0}>
+                    {b.name} ·{" "}
+                    {closed
+                      ? `Cerrado (${b.closedReason ?? "sin ingreso"})`
+                      : `${b.free}/${b.capacity} libres`}
+                  </option>
+                );
+              })}
           </select>
           <button className="btn" onClick={() => target && onMove(target)} disabled={!target}>
             <I name="arrowRight" size={16} />

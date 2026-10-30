@@ -26,12 +26,23 @@ export interface Lot {
   cap: number;
   pct: number;
   estado: string;
-  level: "low" | "mid" | "high" | "full";
+  level: "low" | "mid" | "high" | "full" | "closed";
 }
 
-/** Deriva nivel/estado de un lote a partir de ocupación. */
-export function lotLevel(ocup: number, cap: number): Pick<Lot, "pct" | "estado" | "level"> {
+/** Deriva nivel/estado de un lote a partir de ocupación y disponibilidad de ingreso. */
+export function lotLevel(
+  ocup: number,
+  cap: number,
+  opts?: { entryAllowed?: boolean; closedReason?: string | null }
+): Pick<Lot, "pct" | "estado" | "level"> {
   const pct = cap ? Math.round((ocup / cap) * 100) : 0;
+  if (opts?.entryAllowed === false) {
+    return {
+      pct: Math.min(100, pct),
+      estado: opts.closedReason || "Ingreso cerrado",
+      level: "closed",
+    };
+  }
   if (ocup >= cap) return { pct: 100, estado: "Lleno", level: "full" };
   if (pct > 85) return { pct, estado: "Crítico", level: "high" };
   if (pct > 50) return { pct, estado: "Casi lleno", level: "mid" };

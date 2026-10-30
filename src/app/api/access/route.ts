@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { memberByCredential } from "@/lib/members";
 import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
+import { findBlockingEventForBlock } from "@/lib/events";
 import { featureBlock } from "@/lib/plan";
 import { verifyQrToken } from "@/lib/qr";
 
@@ -111,6 +112,13 @@ export const POST = withTenant(
       const block = await prisma.parkingBlock.findFirst({ where: { id: blockToAssign, organizationId } });
       if (!block) return jsonError(404, "Bloque no encontrado");
       if (body.direction === "IN") {
+        if (block.active === false) {
+          return jsonError(409, `El bloque ${block.name} tiene el ingreso desactivado`);
+        }
+        const blockingEvent = await findBlockingEventForBlock(organizationId, block.id);
+        if (blockingEvent) {
+          return jsonError(409, `Ingreso cerrado en ${block.name} por evento: ${blockingEvent.title}`);
+        }
         const occupied = await prisma.vehicle.count({ where: { currentBlockId: block.id } });
         if (occupied >= block.capacity) {
           return jsonError(409, `Bloque ${block.name} lleno (${occupied}/${block.capacity})`);

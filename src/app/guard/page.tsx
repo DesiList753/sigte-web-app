@@ -24,6 +24,8 @@ type Block = {
   capacity: number;
   occupied: number;
   free: number;
+  entryAllowed?: boolean;
+  closedReason?: string | null;
   isDefault: boolean;
 };
 type Totals = { inside: number; capacity: number; free: number; defaultBlockId: string | null };
@@ -241,6 +243,11 @@ function VehicleCard({
   onIn: () => void;
   onOut: () => void;
 }) {
+  const targetBlock = selectedBlock
+    ? blocks.find((b) => b.id === selectedBlock)
+    : defaultBlock;
+  const targetClosed = !vehicle.currentBlock && targetBlock?.entryAllowed === false;
+
   return (
     <Card pad="sm" style={{ marginTop: 16 }}>
       <div className="row between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
@@ -276,7 +283,10 @@ function VehicleCard({
           <div className="row between" style={{ alignItems: "center" }}>
             <label className="field-lbl" htmlFor="bloque-asignar">Bloque a asignar (opcional)</label>
             {defaultBlock && (
-              <Badge kind="info">Default: {defaultBlock.name}</Badge>
+              <Badge kind={defaultBlock.entryAllowed === false ? "no" : "info"}>
+                Default: {defaultBlock.name}
+                {defaultBlock.entryAllowed === false ? " (Cerrado)" : ""}
+              </Badge>
             )}
           </div>
           <select
@@ -285,19 +295,35 @@ function VehicleCard({
             value={selectedBlock}
             onChange={(e) => onBlockChange(e.target.value)}
           >
-            <option value="">Usar default ({defaultBlock?.name ?? "No definido"})</option>
-            {blocks.map((b) => (
-              <option key={b.id} value={b.id} disabled={b.free <= 0}>
-                {b.isDefault ? "⭐ " : ""}
-                {b.name} · {b.free}/{b.capacity} libres
-              </option>
-            ))}
+            <option value="" disabled={defaultBlock?.entryAllowed === false}>
+              Usar default ({defaultBlock?.name ?? "No definido"}
+              {defaultBlock?.entryAllowed === false ? " · Ingreso cerrado" : ""})
+            </option>
+            {blocks.map((b) => {
+              const closed = b.entryAllowed === false;
+              return (
+                <option key={b.id} value={b.id} disabled={closed || b.free <= 0}>
+                  {b.isDefault ? "⭐ " : ""}
+                  {b.name} ·{" "}
+                  {closed
+                    ? `Cerrado (${b.closedReason ?? "sin ingreso"})`
+                    : `${b.free}/${b.capacity} libres`}
+                </option>
+              );
+            })}
           </select>
-          <span className="field-hint">
-            Si no eliges un bloque, el vehículo queda en{" "}
-            {defaultBlock?.name ?? "el bloque default"} y lo puedes mover luego desde
-            &quot;Estacionamiento en vivo&quot;.
-          </span>
+          {targetClosed ? (
+            <div className="callout warn" style={{ padding: "8px 12px", fontSize: 12.5, marginTop: 4 }}>
+              El bloque <strong>{targetBlock?.name}</strong> tiene el ingreso cerrado (
+              {targetBlock?.closedReason ?? "no disponible"}). Elige un bloque habilitado.
+            </div>
+          ) : (
+            <span className="field-hint">
+              Si no eliges un bloque, el vehículo queda en{" "}
+              {defaultBlock?.name ?? "el bloque default"} y lo puedes mover luego desde
+              &quot;Estacionamiento en vivo&quot;.
+            </span>
+          )}
         </div>
       )}
 
@@ -306,7 +332,7 @@ function VehicleCard({
           className="btn primary lg"
           style={{ flex: 1 }}
           onClick={onIn}
-          disabled={busy || !vehicle.authorized || !!vehicle.currentBlock}
+          disabled={busy || !vehicle.authorized || !!vehicle.currentBlock || targetClosed}
         >
           <I name="login" size={18} />
           Registrar ingreso

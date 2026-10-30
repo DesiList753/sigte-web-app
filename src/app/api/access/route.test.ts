@@ -26,6 +26,7 @@ vi.mock("@/lib/prisma", () => ({
       create: vi.fn().mockResolvedValue({ id: "log-1", block: null }),
     },
     parkingBlock: { findFirst: vi.fn() },
+    parkingEvent: { findFirst: vi.fn().mockResolvedValue(null) },
     organization: { findUnique: vi.fn().mockResolvedValue({ defaultBlockId: null }) },
     notification: { create: vi.fn().mockResolvedValue({}) },
   },
@@ -175,5 +176,40 @@ describe("POST /api/access", () => {
       where: { id: mockVehicle.id },
       data: { currentBlockId: "default-a" },
     });
+  });
+
+  it("impide el ingreso si el bloque está desactivado o cerrado por un evento activo, pero permite la salida", async () => {
+    vi.mocked(prisma.parkingBlock.findFirst).mockImplementation(
+      onlyInOrg(ORG_A, { id: "block-1", name: "Estacionamiento 1", capacity: 50, active: true })
+    );
+    vi.mocked(prisma.parkingEvent.findFirst).mockResolvedValueOnce({
+      id: "ev-1",
+      title: "Urgencia eléctrica",
+      kind: "EMERGENCY",
+      endsAt: null,
+    } as never);
+
+    const denied = await post({ plate: "AB1234", method: "PLATE", direction: "IN", blockId: "block-1" });
+    expect(denied.status).toBe(409);
+    expect((await denied.json()).error).toMatch(/Urgencia eléctrica/);
+    expect(prisma.accessLog.create).not.toHaveBeenCalled();
+
+    const exitRes = await post({ plate: "AB1234", method: "PLATE", direction: "OUT", blockId: "block-1" });
+    expect(exitRes.status).toBe(201);
+  });
+
+  it("solo considera bloques del evento que siguen cerrados, de su organización", async () => {
+    vi.mocked(prisma.parkingBlock.findFirst).mockImplementation(
+      onlyInOrg(ORG_A, { id: "block-1", name: "Estacionamiento 1", capacity: 50, active: true })
+    );
+    await post({ plate: "AB1234", method: "PLATE", direction: "IN", blockId: "block-1" });
+    expect(prisma.parkingEvent.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: ORG_A,
+          blocks: { some: { blockId: "block-1", releasedAt: null } },
+        }),
+      })
+    );
   });
 });

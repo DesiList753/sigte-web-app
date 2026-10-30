@@ -6,6 +6,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     vehicle: { findFirst: vi.fn(), update: vi.fn().mockResolvedValue({}) },
     parkingBlock: { findFirst: vi.fn() },
+    parkingEvent: { findFirst: vi.fn().mockResolvedValue(null) },
     accessLog: { create: vi.fn().mockResolvedValue({}) },
   },
 }));
@@ -60,5 +61,14 @@ describe("POST /api/vehicles/[id]/move", () => {
     expect(prisma.accessLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ organizationId: ORG_A, blockId: "block-c" }),
     });
+  });
+
+  it("impide trasladar a un bloque desactivado o cerrado por evento", async () => {
+    vi.mocked(prisma.parkingBlock.findFirst).mockImplementation(
+      onlyInOrg(ORG_A, { id: "block-c", name: "C", active: false })
+    );
+    const res = await move("block-c");
+    expect(res.status).toBe(409);
+    expect(prisma.vehicle.update).not.toHaveBeenCalled();
   });
 });

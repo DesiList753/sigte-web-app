@@ -61,6 +61,16 @@ describe("PATCH /api/parking/[id]", () => {
     expect(res.status).toBe(400);
     expect(prisma.parkingBlock.update).not.toHaveBeenCalled();
   });
+
+  it("permite desactivar manualmente el ingreso de un bloque y audita SUSPEND", async () => {
+    const res = await patch("block-a", { active: false });
+    expect(res.status).toBe(200);
+    expect(prisma.parkingBlock.update).toHaveBeenCalledWith({
+      where: { id: "block-a" },
+      data: { active: false },
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "SUSPEND", "PARKING_BLOCK"));
+  });
 });
 
 describe("DELETE /api/parking/[id]", () => {

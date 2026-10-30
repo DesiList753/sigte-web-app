@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode } from "react";
 import { I } from "@/components/Icon";
+import { ActiveEventsBanner } from "@/components/ActiveEventsBanner";
+import { CountPill, useUnreadNotifications } from "@/components/NotificationsBadge";
 import { OrgBrand } from "@/components/ui-system";
 import { OrgSwitcher, type OrgOption } from "@/components/OrgSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -14,6 +16,7 @@ export interface PortalTab { href: string; label: string; icon: string; }
 export function PortalShell({ tabs, userName, brand, organizations, currentOrganizationId, children }: { tabs: PortalTab[]; userName: string; brand: OrganizationBrand; organizations: OrgOption[]; currentOrganizationId: string; children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const unreadCount = useUnreadNotifications();
   const ini = userName.split(/[\s.]/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -39,14 +42,17 @@ export function PortalShell({ tabs, userName, brand, organizations, currentOrgan
         <nav style={{ maxWidth: 920, margin: "0 auto", padding: "0 24px", display: "flex", gap: 4, overflowX: "auto" }}>
           {tabs.map((t) => {
             const on = t.href === activeHref;
+            const isNotif = t.icon === "bell";
             return (
               <Link key={t.href} href={t.href} style={{ display: "flex", alignItems: "center", gap: 7, padding: "11px 12px", flex: "none", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: on ? 600 : 500, color: on ? "var(--accent)" : "var(--ink-500)", borderBottom: on ? "2px solid var(--accent)" : "2px solid transparent" }}>
                 <I name={t.icon} size={17} /> {t.label}
+                {isNotif && <CountPill count={unreadCount} />}
               </Link>
             );
           })}
         </nav>
       </header>
+      <ActiveEventsBanner />
       <main style={{ maxWidth: 920, margin: "0 auto", padding: 24 }}>{children}</main>
     </div>
   );
