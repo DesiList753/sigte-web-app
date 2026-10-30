@@ -8,7 +8,7 @@ import { SIGNUP_PLAN } from "@/lib/organizations";
 import { prisma } from "@/lib/prisma";
 import { SignupForm } from "./SignupForm";
 
-export const metadata: Metadata = { title: "Crear cuenta para mi organización · S.I.G.T.E" };
+export const metadata: Metadata = { title: "Crear cuenta para mi organización · S.I.G.T.E." };
 
 export default async function CreateOrganizationPage() {
   const actor = await getActor();

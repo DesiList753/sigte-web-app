@@ -19,18 +19,19 @@ export function notifyEventsUpdated() {
   }
 }
 
-export function useUnreadNotifications() {
+export function useUnreadNotifications(enabled = true) {
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const refresh = useCallback(() => {
+    if (!enabled) return;
     fetch("/api/notifications?summary=true")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d && typeof d.unreadCount === "number") setUnreadCount(d.unreadCount);
       })
       .catch(() => {});
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     const t = setTimeout(refresh, 0);

@@ -46,7 +46,7 @@ export function OrgShell({
       <p style={{ fontSize: 12, color: "var(--ink-500)", margin: 0 }}>
         Funciona con{" "}
         <Link href="/" style={{ fontWeight: 600, color: "var(--ink-700)" }}>
-          S.I.G.T.E
+          S.I.G.T.E.
         </Link>
       </p>
     </main>

@@ -103,7 +103,7 @@ export function PanelShell({ groups, title, subtitle, userName, userRole, brand,
   groups: PanelNavGroup[]; title: string; subtitle: string; userName: string; userRole: string; brand?: OrganizationBrand; organizations?: OrgOption[]; currentOrganizationId?: string; notificationsHref?: string; showEventsBanner?: boolean; children: ReactNode;
 }) {
   const [navOpen, setNavOpen] = useState(false);
-  const unreadCount = useUnreadNotifications();
+  const unreadCount = useUnreadNotifications(Boolean(notificationsHref));
   const theme = orgTheme(brand?.brandColor);
   return (
     <div className={theme.className} style={{ height: "100vh", display: "flex", ...theme.style }}>

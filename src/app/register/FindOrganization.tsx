@@ -69,7 +69,7 @@ export function FindOrganization() {
             </Link>
           </span>
           <span>
-            ¿Quieres usar S.I.G.T.E en tu organización?{" "}
+            ¿Quieres usar S.I.G.T.E. en tu organización?{" "}
             <Link href="/crear-organizacion" style={{ fontWeight: 600 }}>
               Crea su cuenta
             </Link>

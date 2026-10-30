@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { FindOrganization } from "./FindOrganization";
 
-export const metadata: Metadata = { title: "Crear cuenta · S.I.G.T.E" };
+export const metadata: Metadata = { title: "Crear cuenta · S.I.G.T.E." };
 
 export default async function RegisterPage({
   searchParams,

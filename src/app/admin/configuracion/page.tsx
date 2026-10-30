@@ -227,7 +227,7 @@ export default function AdminSettings() {
                 />
                 {color && (
                   <button type="button" className="btn ghost" onClick={() => set("brandColor", "")}>
-                    Usar el de S.I.G.T.E
+                    Usar el de S.I.G.T.E.
                   </button>
                 )}
               </div>

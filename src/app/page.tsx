@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 import s from "./home.module.css";
 
 export const metadata: Metadata = {
-  title: "S.I.G.T.E · Control de acceso vehicular para organizaciones",
+  title: "S.I.G.T.E. · Control de acceso vehicular para organizaciones",
   description:
     "Registra entradas y salidas, controla los cupos de cada estacionamiento y gestiona infracciones desde un solo panel.",
 };
@@ -70,7 +70,7 @@ export default async function Home() {
     <div className={s.page}>
       <header className={s.top}>
         <div className={s.topIn}>
-          <Link href="/" aria-label="S.I.G.T.E, inicio" style={{ display: "flex" }}>
+          <Link href="/" aria-label="S.I.G.T.E., inicio" style={{ display: "flex" }}>
             <ProductBrand />
           </Link>
           <nav className={s.nav}>
@@ -91,7 +91,7 @@ export default async function Home() {
             Entradas, salidas y estacionamientos, <span className={s.accent}>en un solo lugar</span>.
           </h1>
           <p className={s.lead}>
-            S.I.G.T.E registra cada acceso, muestra los cupos libres de cada estacionamiento y deja todo en una bitácora.
+            S.I.G.T.E. registra cada acceso, muestra los cupos libres de cada estacionamiento y deja todo en una bitácora.
             Sirve para universidades, empresas, clínicas y condominios.
           </p>
           <div className={s.actions}>
@@ -181,7 +181,7 @@ export default async function Home() {
           <section className={s.section}>
             <div className={s.band}>
               <div>
-                <h2>¿Tu organización ya usa S.I.G.T.E?</h2>
+                <h2>¿Tu organización ya usa S.I.G.T.E.?</h2>
                 <p>Entra con tu cuenta, o crea tu cuenta de conductor con el código de tu organización.</p>
               </div>
               <div className={s.bandActions}>
@@ -199,7 +199,7 @@ export default async function Home() {
 
       <footer className={s.footer}>
         <div className={s.footerIn}>
-          <b>S.I.G.T.E</b> · Sistema Inteligente de Gestión de Tránsito y Estacionamiento. Un producto de VanillaSoft.
+          <b>S.I.G.T.E.</b> · Sistema Inteligente de Gestión de Tránsito y Estacionamiento. Un producto de VanillaSoft.
         </div>
       </footer>
     </div>

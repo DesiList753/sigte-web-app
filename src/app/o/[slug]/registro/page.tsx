@@ -9,7 +9,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const org = await publicOrganization((await params).slug);
-  return { title: org ? `Crear cuenta · ${org.displayName}` : "S.I.G.T.E" };
+  return { title: org ? `Crear cuenta · ${org.displayName}` : "S.I.G.T.E." };
 }
 
 export default async function OrganizationRegisterPage({ params }: Props) {

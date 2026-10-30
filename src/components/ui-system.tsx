@@ -20,20 +20,16 @@ export function Badge({ kind, children }: { kind: Estado | "info"; children?: Re
 export function ProductBrand({ light }: { light?: boolean }) {
   return (
     <div className="brand" style={{ color: light ? "#fff" : "var(--accent)" }}>
-      <span
-        className="crest"
-        style={{
-          background: light ? "#fff" : "var(--accent)",
-          color: light ? "var(--accent)" : "#fff",
-          border: "none",
-          opacity: 1,
-        }}
-      >
-        <I name="barrier" size={22} stroke={2} />
-      </span>
+      <Image
+        src="/sigte-icono.svg"
+        alt=""
+        width={38}
+        height={38}
+        style={{ flex: "none", borderRadius: 9, boxShadow: light ? "0 0 0 1.5px rgba(255,255,255,.35)" : undefined }}
+      />
       <span className="sep" />
       <div style={{ textAlign: "left" }}>
-        <div className="sigla">S.I.G.T.E</div>
+        <div className="sigla">S.I.G.T.E.</div>
         <div className="tag">Tránsito y estacionamiento</div>
       </div>
     </div>
@@ -93,7 +89,7 @@ export function OrgBrand({
       <span className="sep" />
       <div style={{ textAlign: "left", minWidth: 0 }}>
         <div className="sigla org-name clamp">{name}</div>
-        <div className="tag clamp">{legalName && legalName !== name ? legalName : "S.I.G.T.E"}</div>
+        <div className="tag clamp">{legalName && legalName !== name ? legalName : "S.I.G.T.E."}</div>
       </div>
     </div>
   );

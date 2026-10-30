@@ -67,7 +67,7 @@ export default function AdminUsers() {
   }
 
   async function remove(u: User) {
-    if (!confirm(`¿Quitar a ${u.name} de la organización? Su cuenta de S.I.G.T.E no se borra.`)) return;
+    if (!confirm(`¿Quitar a ${u.name} de la organización? Su cuenta de S.I.G.T.E. no se borra.`)) return;
     const r = await fetch(`/api/users/${u.id}`, { method: "DELETE" });
     if (!r.ok) {
       const e = await r.json();

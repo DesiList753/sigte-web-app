@@ -23,7 +23,7 @@ export default function LoginPage() {
           <div style={{ display: "inline-flex", marginBottom: 28 }}>
             <ProductBrand />
           </div>
-          <h1 style={{ fontSize: 26, marginBottom: 24 }}>Bienvenido a S.I.G.T.E</h1>
+          <h1 style={{ fontSize: 26, marginBottom: 24 }}>Bienvenido a S.I.G.T.E.</h1>
           <Suspense fallback={<p className="muted" style={{ fontSize: 13 }}>Cargando…</p>}>
             <LoginForm registerHref="/register" />
           </Suspense>

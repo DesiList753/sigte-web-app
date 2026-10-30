@@ -1,4 +1,4 @@
-# S.I.G.T.E
+# S.I.G.T.E.
 
 Sistema Inteligente de Gestión de Tránsito y Estacionamiento. Es una plataforma web de VanillaSoft para que cada organización controle el acceso de vehículos, los cupos de sus estacionamientos y las infracciones.
 
@@ -115,8 +115,8 @@ Las dos sedes USM solo aceptan registros con correo `usm.cl` (incluye subdominio
 
 ## Próximas ideas
 
-- **Registro común:** crear una cuenta de S.I.G.T.E sin organización y unirse a organizaciones después.
-- **Vehículos de la persona:** la persona registra sus vehículos una vez y autoriza a cada organización a verlos. Cada organización decide qué vehículos tienen permiso de ingreso. La base de producción ya tiene las columnas de "permiso" que trajo la PR #5 de S.I.G.T.E-WEB.
+- **Registro común:** crear una cuenta de S.I.G.T.E. sin organización y unirse a organizaciones después.
+- **Vehículos de la persona:** la persona registra sus vehículos una vez y autoriza a cada organización a verlos. Cada organización decide qué vehículos tienen permiso de ingreso. La base de producción ya tiene las columnas de "permiso" que trajo la PR #5 de S.I.G.T.E.-WEB.
 - **Versiones /v1, /v2 y /v3:** mostrar la evolución del sistema con planes ocultos y organizaciones de ejemplo.
 - **Correos de recuperación:** configurar `RESEND_FROM_EMAIL` con un dominio verificado en Resend.
 

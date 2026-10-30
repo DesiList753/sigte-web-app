@@ -104,7 +104,7 @@ export default function PlatformOrganizations() {
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Organizaciones</h1>
           <p className="muted" style={{ fontSize: 13 }}>
-            Cuentas que usan S.I.G.T.E, con su plan y uso del mes
+            Cuentas que usan S.I.G.T.E., con su plan y uso del mes
           </p>
         </div>
         <button className="btn primary" onClick={() => setShowNew(true)}>

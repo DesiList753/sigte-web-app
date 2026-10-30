@@ -1,4 +1,4 @@
-/* S.I.G.T.E — set de íconos lineal (estilo Lucide, stroke 2, 24×24) */
+/* S.I.G.T.E. — set de íconos lineal (estilo Lucide, stroke 2, 24×24) */
 import type { CSSProperties } from "react";
 
 const P: Record<string, string> = {
