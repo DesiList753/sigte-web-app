@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { Role } from "@prisma/client";
 import { requireSecret } from "./env";
-
+//comenta me gusta
 const SECRET = new TextEncoder().encode(requireSecret("JWT_SECRET", "dev-only-secret-replace"));
 const ISSUER = process.env.JWT_ISSUER ?? "sigte.local";
 const AUDIENCE = process.env.JWT_AUDIENCE ?? "sigte.app";
