@@ -1,8 +1,12 @@
-.split { display: grid; grid-template-columns: 1fr 1fr; height: 100vh; }
+.split { display: grid; grid-template-columns: 1fr 1fr; height: 100vh; height: 100dvh; }
 .formSide { display: flex; align-items: center; justify-content: center; padding: 40px; background: var(--surface); }
 .formInner { width: 100%; max-width: 360px; text-align: center; }
 .aside { background: linear-gradient(160deg, var(--accent-900), var(--accent) 65%, #0a5a99); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 @media (max-width: 820px) {
-  .split { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
+  .split { grid-template-columns: 1fr; height: auto; min-height: 100vh; min-height: 100dvh; }
   .aside { display: none; }
+  .formSide { padding: 28px 20px; }
+}
+@media (max-width: 420px) {
+  .formSide { padding: 20px 16px; align-items: flex-start; }
 }

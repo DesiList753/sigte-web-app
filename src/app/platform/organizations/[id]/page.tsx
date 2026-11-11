@@ -155,7 +155,7 @@ export default function PlatformOrganizationDetail() {
 
   if (notFound) {
     return (
-      <div style={{ padding: 24 }}>
+      <div className="app-page">
         <p className="muted">Organización no encontrada.</p>
         <Link href="/platform">Volver a organizaciones</Link>
       </div>
@@ -164,7 +164,7 @@ export default function PlatformOrganizationDetail() {
 
   if (!org || !form) {
     return (
-      <div style={{ padding: 24, display: "grid", gap: 16 }}>
+      <div className="app-page" style={{ display: "grid", gap: 16 }}>
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="skeleton" style={{ height: 120, borderRadius: 16 }} />
         ))}
@@ -183,7 +183,7 @@ export default function PlatformOrganizationDetail() {
       : [];
 
   return (
-    <div style={{ padding: 24, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 20 }}>
+    <div className="app-page" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 20 }}>
       <div>
         <Link href="/platform" className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}>
           <I name="chevronLeft" size={16} /> Organizaciones

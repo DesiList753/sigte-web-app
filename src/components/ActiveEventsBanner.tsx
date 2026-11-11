@@ -53,7 +53,7 @@ const KIND_META: Record<
     badge: "info",
     label: "Aviso importante",
     icon: "megaphone",
-    iconColor: "var(--accent-700)",
+    iconColor: "var(--accent-ink-strong)",
   },
 };
 
@@ -114,7 +114,9 @@ export function ActiveEventsBanner({ compact }: { compact?: boolean }) {
       style={{
         display: "grid",
         gap: 10,
-        padding: compact ? "14px 24px 0" : "16px 24px 0",
+        padding: compact
+          ? "clamp(10px,3vw,14px) clamp(14px,4vw,24px) 0"
+          : "clamp(12px,3vw,16px) clamp(14px,4vw,24px) 0",
         maxWidth: compact ? undefined : 920,
         margin: compact ? undefined : "0 auto",
       }}

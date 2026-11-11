@@ -154,7 +154,7 @@ export function SignupForm() {
 
       <p style={{ fontSize: 13, color: "var(--ink-500)", textAlign: "center", margin: 0 }}>
         ¿Ya tienes cuenta?{" "}
-        <Link href="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>
+        <Link href="/login" style={{ color: "var(--accent-ink)", fontWeight: 600 }}>
           Inicia sesión
         </Link>
       </p>

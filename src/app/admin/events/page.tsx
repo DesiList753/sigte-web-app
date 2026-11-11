@@ -351,7 +351,7 @@ export default function AdminEventsPage() {
   const nonDefaultBlocks = blocks.filter((b) => !b.isDefault);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="app-page">
       <div className="row between" style={{ marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>
@@ -555,7 +555,7 @@ export default function AdminEventsPage() {
         {visibleEvents.length === 0 && (
           <Card>
             <div className="col center" style={{ padding: "42px 16px", gap: 8, textAlign: "center" }}>
-              <I name="calendar" size={36} style={{ color: "var(--accent-700)" }} />
+              <I name="calendar" size={36} style={{ color: "var(--accent-ink-strong)" }} />
               <p style={{ fontWeight: 600 }}>
                 {tab === "CURRENT"
                   ? "No hay eventos activos ni programados"
@@ -578,7 +578,7 @@ export default function AdminEventsPage() {
           <form onSubmit={saveEvent} className="col" style={{ gap: 14 }}>
             <div className="field">
               <span className="field-lbl">Tipo</span>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
                 {KIND_OPTIONS.map((k) => {
                   const selected = kind === k.id;
                   return (

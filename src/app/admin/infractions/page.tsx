@@ -64,7 +64,7 @@ export default function AdminInfractions() {
   const openCount = items.filter((i) => i.status === "OPEN").length;
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="app-page">
       <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Infracciones</h1>
       <p className="muted" style={{ marginTop: 4 }}>
         Gestión del ciclo de fiscalización interna

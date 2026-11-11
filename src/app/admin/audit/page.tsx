@@ -14,7 +14,7 @@ export default function AdminAudit() {
   }, []);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="app-page">
       <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Auditoría</h1>
       <p className="muted" style={{ fontSize: 13, marginBottom: 16 }}>
         Acciones importantes realizadas en tu organización

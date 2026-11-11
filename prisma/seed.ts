@@ -99,9 +99,9 @@ const PLANS: {
   maxVehicles: number | null;
   features: PlanFeature[];
 }[] = [
-  { code: "basico", name: "Básico", maxUsers: 100, maxGuards: 2, maxBlocks: 3, maxVehicles: 150, features: ["QR"] },
-  { code: "profesional", name: "Profesional", maxUsers: 1000, maxGuards: 10, maxBlocks: 10, maxVehicles: 1500, features: ["QR", "INFRACTIONS"] },
-  { code: "institucional", name: "Institucional", maxUsers: null, maxGuards: null, maxBlocks: null, maxVehicles: null, features: ["QR", "INFRACTIONS", "REPORTS"] },
+  { code: "basico", name: "Tier 1", maxUsers: 100, maxGuards: 2, maxBlocks: 3, maxVehicles: 150, features: ["QR"] },
+  { code: "profesional", name: "Tier 2", maxUsers: 1000, maxGuards: 10, maxBlocks: 10, maxVehicles: 1500, features: ["QR", "INFRACTIONS"] },
+  { code: "institucional", name: "Tier 3", maxUsers: null, maxGuards: null, maxBlocks: null, maxVehicles: null, features: ["QR", "INFRACTIONS", "REPORTS"] },
 ];
 
 const SUPER_ADMIN: UserDef = {

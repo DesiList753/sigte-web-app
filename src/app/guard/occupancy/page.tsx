@@ -137,7 +137,7 @@ export default function GuardLive() {
   }));
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="app-page">
       <div className="row between" style={{ marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Estacionamiento en vivo</h1>

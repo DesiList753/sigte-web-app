@@ -37,7 +37,7 @@ Cada persona tiene una sola cuenta, identificada por su correo. Esa cuenta puede
 
 ### Planes
 
-Cada plan define límites de usuarios, guardias, bloques y vehículos, y qué funciones incluye (QR, infracciones, reportes). VanillaSoft asigna los planes a mano: no hay cobro en línea. Toda organización nueva parte en el plan **Básico**.
+Cada plan define límites de usuarios, guardias, bloques y vehículos, y qué funciones incluye (QR, infracciones, reportes). VanillaSoft asigna los planes a mano: no hay cobro en línea. Toda organización nueva parte en el plan **Tier 1**.
 
 ### Páginas públicas
 
