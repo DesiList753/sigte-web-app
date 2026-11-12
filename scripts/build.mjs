@@ -5,4 +5,4 @@ function run(command) {
 }
 
 if (process.env.VERCEL_ENV === "production") run("prisma migrate deploy");
-run("next build");
+run("next build --webpack");
