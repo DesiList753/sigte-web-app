@@ -69,7 +69,7 @@ function GuardSearchInner() {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="app-page">
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Buscar vehículos</h1>
         <p className="muted" style={{ fontSize: 13 }}>

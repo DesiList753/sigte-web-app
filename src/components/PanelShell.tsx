@@ -61,16 +61,20 @@ function Sidebar({ groups, brand, unreadCount, open, onClose }: { groups: PanelN
 function TopBar({ title, subtitle, userName, userRole, organizations, currentOrganizationId, notificationsHref, unreadCount, onBurger }: { title: string; subtitle: string; userName: string; userRole: string; organizations?: OrgOption[]; currentOrganizationId?: string; notificationsHref?: string; unreadCount: number; onBurger: () => void }) {
   const ini = userName.split(/[\s.]/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
-    <header style={{ height: 62, flex: "none", background: "var(--surface)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
+    <header className="panel-topbar" style={{ height: 62, flex: "none", background: "var(--surface)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
       <button className="panel-burger" onClick={onBurger} aria-label="Abrir menú">
         <I name="menu" size={22} />
       </button>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontFamily: "var(--ff-display)", fontWeight: 700, fontSize: 19, lineHeight: 1.1 }}>{title}</div>
-        <div style={{ fontSize: 12, color: "var(--ink-500)", marginTop: 1 }}>{subtitle}</div>
+      <div className="panel-title" style={{ minWidth: 0 }}>
+        <div style={{ fontFamily: "var(--ff-display)", fontWeight: 700, fontSize: 19, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
+        <div className="panel-title-subtitle" style={{ fontSize: 12, color: "var(--ink-500)", marginTop: 1 }}>{subtitle}</div>
       </div>
       <div style={{ flex: 1 }} />
-      {organizations && currentOrganizationId && <OrgSwitcher options={organizations} current={currentOrganizationId} />}
+      {organizations && currentOrganizationId && (
+        <div className="panel-org-switcher">
+          <OrgSwitcher options={organizations} current={currentOrganizationId} />
+        </div>
+      )}
       {organizations && (
         <Link href="/cuenta" className="btn ghost icon" title="Mis organizaciones" aria-label="Mis organizaciones">
           <I name="users" size={18} />
@@ -93,9 +97,9 @@ function TopBar({ title, subtitle, userName, userRole, organizations, currentOrg
         </Link>
       )}
       <ThemeToggle />
-      <div style={{ display: "flex", alignItems: "center", gap: 9, paddingLeft: 6, borderLeft: "1px solid var(--line)" }}>
+      <div className="panel-user" style={{ display: "flex", alignItems: "center", gap: 9, paddingLeft: 6, borderLeft: "1px solid var(--line)" }}>
         <span className="avatar">{ini || "…"}</span>
-        <div style={{ lineHeight: 1.15 }}>
+        <div className="panel-user-meta" style={{ lineHeight: 1.15 }}>
           <div style={{ fontSize: 13, fontWeight: 600 }}>{userName}</div>
           <div style={{ fontSize: 11, color: "var(--ink-500)" }}>{userRole}</div>
         </div>
@@ -111,7 +115,7 @@ export function PanelShell({ groups, title, subtitle, userName, userRole, brand,
   const unreadCount = useUnreadNotifications(Boolean(notificationsHref));
   const theme = orgTheme(brand?.brandColor);
   return (
-    <div className={theme.className} style={{ height: "100vh", display: "flex", ...theme.style }}>
+    <div className={`panel-shell ${theme.className ?? ""}`} style={{ display: "flex", ...theme.style }}>
       <Sidebar groups={groups} brand={brand} unreadCount={unreadCount} open={navOpen} onClose={() => setNavOpen(false)} />
       {navOpen && <div className="panel-overlay" onClick={() => setNavOpen(false)} />}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>

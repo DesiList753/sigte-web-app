@@ -87,13 +87,13 @@ export function LoginForm({
       {registerHref && (
         <p style={{ fontSize: 13, color: "var(--ink-500)", textAlign: "center", margin: 0 }}>
           ¿No tienes cuenta?{" "}
-          <Link href={registerHref} style={{ color: "var(--accent)", fontWeight: 600 }}>
+          <Link href={registerHref} style={{ color: "var(--accent-ink)", fontWeight: 600 }}>
             Regístrate
           </Link>
         </p>
       )}
       <p style={{ fontSize: 13, color: "var(--ink-500)", textAlign: "center", margin: 0 }}>
-        <Link href="/forgot-password" style={{ color: "var(--accent)", fontWeight: 600 }}>
+        <Link href="/forgot-password" style={{ color: "var(--accent-ink)", fontWeight: 600 }}>
           ¿Olvidaste tu contraseña?
         </Link>
       </p>

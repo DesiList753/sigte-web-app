@@ -99,7 +99,7 @@ export default function AdminSettings() {
 
   if (!settings || !form) {
     return (
-      <div style={{ padding: 24, display: "grid", gap: 16 }}>
+      <div className="app-page" style={{ display: "grid", gap: 16 }}>
         <div className="skeleton" style={{ height: 260, borderRadius: 16 }} />
         <div className="skeleton" style={{ height: 220, borderRadius: 16 }} />
       </div>
@@ -158,7 +158,7 @@ export default function AdminSettings() {
   }
 
   return (
-    <form onSubmit={save} style={{ padding: 24, display: "grid", gap: 20, maxWidth: 980 }}>
+    <form onSubmit={save} className="app-page" style={{ display: "grid", gap: 20, maxWidth: 980 }}>
       <div>
         <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Configuración</h1>
         <p className="muted" style={{ fontSize: 13 }}>
@@ -266,12 +266,11 @@ export default function AdminSettings() {
           <div style={{ minWidth: 0 }}>
             <span className="field-lbl">Vista previa</span>
             <div
-              className={preview.className}
+              className={`settings-preview ${preview.className ?? ""}`}
               style={{
                 ...preview.style,
                 marginTop: 6,
                 display: "grid",
-                gridTemplateColumns: "minmax(0, 190px) minmax(0, 1fr)",
                 border: "1px solid var(--line)",
                 borderRadius: 12,
                 overflow: "hidden",
@@ -307,7 +306,7 @@ export default function AdminSettings() {
                   <I name="plus" size={16} /> Botón principal
                 </span>
                 <span className="btn secondary">Botón secundario</span>
-                <span style={{ color: "var(--accent)", fontWeight: 600, fontSize: 13.5 }}>Un enlace</span>
+                <span style={{ color: "var(--accent-ink)", fontWeight: 600, fontSize: 13.5 }}>Un enlace</span>
                 <span className="badge info">
                   <span className="dot" />
                   Etiqueta
@@ -355,7 +354,7 @@ export default function AdminSettings() {
                       fontFamily: "var(--ff-body)",
                     }}
                   >
-                    <span style={{ display: "block", fontWeight: 600, fontSize: 14, color: on ? "var(--accent-700)" : "var(--ink-900)" }}>
+                    <span style={{ display: "block", fontWeight: 600, fontSize: 14, color: on ? "var(--accent-ink-strong)" : "var(--ink-900)" }}>
                       {p.label}
                     </span>
                     <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-500)", marginTop: 2 }}>{p.hint}</span>
@@ -429,7 +428,7 @@ export default function AdminSettings() {
                       fontFamily: "var(--ff-body)",
                     }}
                   >
-                    <span style={{ display: "block", fontWeight: 600, fontSize: 14, color: on ? "var(--accent-700)" : "var(--ink-900)" }}>
+                    <span style={{ display: "block", fontWeight: 600, fontSize: 14, color: on ? "var(--accent-ink-strong)" : "var(--ink-900)" }}>
                       {f.label}
                     </span>
                     <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-500)", marginTop: 2 }}>{f.hint}</span>

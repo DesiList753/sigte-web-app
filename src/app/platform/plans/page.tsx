@@ -115,7 +115,7 @@ export default function PlatformPlans() {
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="app-page">
       <div className="row between" style={{ marginBottom: 20 }}>
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Planes</h1>
@@ -216,7 +216,7 @@ export default function PlatformPlans() {
                 />
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
               {LIMITS.map((l) => (
                 <div className="field" key={l.key}>
                   <label className="field-lbl" htmlFor={`plan-${l.key}`}>Máximo de {l.label.toLowerCase()}</label>

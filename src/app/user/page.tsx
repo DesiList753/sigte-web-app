@@ -46,7 +46,7 @@ export default function UserHome() {
                   display: "grid",
                   placeItems: "center",
                   background: "var(--accent-050)",
-                  color: "var(--accent)",
+                  color: "var(--accent-ink)",
                 }}
               >
                 <I name="qr" size={20} />
@@ -72,7 +72,7 @@ export default function UserHome() {
                   display: "grid",
                   placeItems: "center",
                   background: "var(--accent-050)",
-                  color: "var(--accent)",
+                  color: "var(--accent-ink)",
                 }}
               >
                 <I name="car" size={20} />

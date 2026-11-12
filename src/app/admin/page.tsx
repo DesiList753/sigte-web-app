@@ -54,7 +54,7 @@ export default function AdminDashboard() {
 
   if (!data) {
     return (
-      <div style={{ padding: 24, display: "grid", gap: 16 }}>
+      <div className="app-page" style={{ display: "grid", gap: 16 }}>
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="skeleton" style={{ height: 120, borderRadius: 16 }} />
         ))}
@@ -76,8 +76,8 @@ export default function AdminDashboard() {
   }));
 
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
+    <div className="app-page">
+      <div className="metric-grid">
         <Metric
           label="Usuarios"
           icon="users"

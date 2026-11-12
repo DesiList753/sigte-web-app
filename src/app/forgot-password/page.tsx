@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
         )}
 
         <p style={{ fontSize: 13, color: "var(--ink-500)", textAlign: "center", margin: "16px 0 0" }}>
-          <Link href="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>
+          <Link href="/login" style={{ color: "var(--accent-ink)", fontWeight: 600 }}>
             Volver a iniciar sesión
           </Link>
         </p>

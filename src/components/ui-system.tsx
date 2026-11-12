@@ -19,7 +19,7 @@ export function Badge({ kind, children }: { kind: Estado | "info"; children?: Re
 
 export function ProductBrand({ light }: { light?: boolean }) {
   return (
-    <div className="brand" style={{ color: light ? "#fff" : "var(--accent)" }}>
+    <div className="brand" style={{ color: light ? "#fff" : "var(--accent-ink)" }}>
       <Image
         src="/sigte-icono.svg"
         alt=""
@@ -57,7 +57,7 @@ export function OrgBrand({
   light?: boolean;
 }) {
   return (
-    <div className="brand" style={{ color: light ? "#fff" : "var(--accent)", minWidth: 0 }}>
+    <div className="brand" style={{ color: light ? "#fff" : "var(--accent-ink)", minWidth: 0 }}>
       <span
         className="crest"
         style={{
@@ -182,7 +182,7 @@ export function DirTag({ direccion }: { direccion?: "in" | "out" }) {
         fontSize: 10.5,
         fontWeight: 700,
         letterSpacing: ".05em",
-        color: inn ? "var(--ok-700)" : "var(--accent-700)",
+        color: inn ? "var(--ok-700)" : "var(--accent-ink-strong)",
         background: inn ? "var(--ok-050)" : "var(--accent-050)",
         padding: "2px 7px",
         borderRadius: 5,
@@ -237,7 +237,7 @@ export function Modal({
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(14,26,36,.45)" }} />
-      <div className="card" style={{ position: "relative", width, maxWidth: "92vw", maxHeight: "86vh", overflowY: "auto" }}>
+      <div className="card modal-card" style={{ position: "relative", width, maxWidth: "92vw", maxHeight: "86vh", overflowY: "auto" }}>
         <div className="card-head">
           <div className="card-title">{title}</div>
           <button className="btn ghost icon" onClick={onClose}>

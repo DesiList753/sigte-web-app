@@ -90,7 +90,7 @@ export default function UserInfractions() {
                     display: "grid",
                     placeItems: "center",
                     background: "var(--accent-050)",
-                    color: "var(--accent-700)",
+                    color: "var(--accent-ink-strong)",
                     flexShrink: 0,
                   }}
                 >

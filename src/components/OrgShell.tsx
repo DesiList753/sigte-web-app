@@ -25,7 +25,7 @@ export function OrgShell({
         alignContent: "center",
         gap: 16,
         background: "var(--bg)",
-        padding: 24,
+        padding: "clamp(16px, 4vw, 24px)",
         ...theme.style,
       }}
     >

@@ -14,7 +14,7 @@ export function DashboardCharts({ series, occupancy, methodDist, topVehicles }: 
 }) {
   const metodos = Object.entries(methodDist || {}).map(([k, v]) => ({ nombre: METODO[k] ?? k, n: v }));
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20, marginTop: 20 }}>
+    <div className="charts-grid">
       <Card title="Entradas vs salidas · 7 días">
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={series} margin={{ top: 8, right: 12, bottom: 0, left: -18 }}>

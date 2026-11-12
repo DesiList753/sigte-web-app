@@ -103,7 +103,7 @@ export default function UserQR() {
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qr.dataUrl} alt="QR" style={{ width: 256, height: 256 }} />
+                <img src={qr.dataUrl} alt="QR" style={{ width: "100%", maxWidth: 256, height: "auto", aspectRatio: "1" }} />
                 <div style={{ marginTop: 16, width: "100%", display: "grid", gap: 8 }}>
                   <div className="row between">
                     <span className="row" style={{ gap: 6, alignItems: "center", fontSize: 13, fontWeight: 600 }}>

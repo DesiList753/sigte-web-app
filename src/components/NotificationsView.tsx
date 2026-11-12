@@ -57,16 +57,16 @@ const KIND_STYLE: Record<
     badge: "info",
     label: "Aviso",
     bg: "var(--accent-050)",
-    fg: "var(--accent-700)",
-    border: "var(--accent)",
+    fg: "var(--accent-ink-strong)",
+    border: "var(--accent-ink)",
   },
   SYSTEM: {
     icon: "bell",
     badge: "neutral",
     label: "Actividad",
     bg: "var(--accent-050)",
-    fg: "var(--accent-700)",
-    border: "var(--accent)",
+    fg: "var(--accent-ink-strong)",
+    border: "var(--accent-ink)",
   },
 };
 
@@ -216,7 +216,7 @@ export function NotificationsView({ padded }: { padded?: boolean }) {
         {filtered.length === 0 && (
           <Card>
             <div className="col center" style={{ padding: "48px 0", gap: 6, textAlign: "center" }}>
-              <I name="bell" size={40} style={{ color: "var(--accent-700)" }} />
+              <I name="bell" size={40} style={{ color: "var(--accent-ink-strong)" }} />
               <p style={{ fontWeight: 600 }}>Sin notificaciones</p>
               <p className="muted" style={{ fontSize: 13 }}>
                 {filter === "UNREAD"

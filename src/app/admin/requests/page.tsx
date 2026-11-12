@@ -121,7 +121,7 @@ export default function AdminRequests() {
   }
 
   return (
-    <div style={{ padding: 24, display: "grid", gap: 20 }}>
+    <div className="app-page" style={{ display: "grid", gap: 20 }}>
       <div className="row between" style={{ gap: 12, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Solicitudes</h1>

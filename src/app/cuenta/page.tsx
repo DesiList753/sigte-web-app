@@ -26,7 +26,7 @@ export default async function AccountPage() {
   });
 
   return (
-    <main style={{ minHeight: "100vh", background: "var(--bg)", padding: 24 }}>
+    <main className="app-page" style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <div style={{ maxWidth: 640, margin: "0 auto", display: "grid", gap: 16 }}>
         <div className="row between" style={{ gap: 12, flexWrap: "wrap" }}>
           <ProductBrand />
