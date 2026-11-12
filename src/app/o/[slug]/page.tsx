@@ -31,12 +31,12 @@ export default async function OrganizationPage({ params }: Props) {
           <Link href={`/o/${org.slug}/login`} className="btn primary lg block">
             <I name="login" size={19} /> Iniciar sesión
           </Link>
-          {org.selfRegistration ? (
-            <Link href={`/o/${org.slug}/registro`} className="btn secondary lg block">
-              <I name="userCheck" size={19} /> Crear mi cuenta
-            </Link>
+          {org.joinPolicy === "INVITE_ONLY" ? (
+            <OrgNotice>{org.displayName} solo acepta ingresos por invitación de su administración.</OrgNotice>
           ) : (
-            <OrgNotice>Las cuentas nuevas las crea la administración de {org.displayName}.</OrgNotice>
+            <Link href={`/o/${org.slug}/registro`} className="btn secondary lg block">
+              <I name="userCheck" size={19} /> {org.joinPolicy === "APPROVAL" ? "Solicitar ingreso" : "Crear mi cuenta"}
+            </Link>
           )}
         </div>
       )}

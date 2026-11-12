@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { SLUG_PATTERN } from "./slug";
 
-export const SIGNUP_PLAN = "basico";
+export const SIGNUP_PLAN = "gratis";
 
 export const DEFAULT_BLOCK = {
   name: "No definido",

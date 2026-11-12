@@ -11,6 +11,7 @@ vi.mock("@/lib/prisma", async () => {
         update: vi.fn().mockResolvedValue({ id: "vehicle-1" }),
         delete: vi.fn().mockResolvedValue({ id: "vehicle-1" }),
       },
+      notification: { create: vi.fn().mockResolvedValue({}) },
     }),
   };
 });
@@ -19,7 +20,8 @@ import { prisma } from "@/lib/prisma";
 import { DELETE, PATCH } from "./route";
 import { ORG_A, ORG_B, auditedIn, onlyInOrg, params, tenantRequest } from "@/test/tenant";
 
-const ownedVehicle = { id: "vehicle-1", ownerId: "user-1", plate: "AB1234", organizationId: ORG_A };
+const ownedVehicle = { id: "vehicle-1", ownerId: "user-1", plate: "AB1234", organizationId: ORG_A, status: "APPROVED" };
+const pendingVehicle = { ...ownedVehicle, status: "PENDING" };
 
 async function callPatch(
   role: "USER" | "GUARD" | "ADMIN",
@@ -73,6 +75,53 @@ describe("PATCH /api/vehicles/[id]", () => {
     expect(res.status).toBe(404);
     expect(prisma.vehicle.findFirst).toHaveBeenCalledWith({ where: { id: "vehicle-1", organizationId: ORG_B } });
     expect(prisma.vehicle.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("PATCH /api/vehicles/[id] con una solicitud de vehículo", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.vehicle.findFirst).mockImplementation(onlyInOrg(ORG_A, pendingVehicle));
+  });
+
+  it("el ADMIN aprueba: autoriza el vehículo, avisa al dueño y deja auditoría", async () => {
+    const res = await callPatch("ADMIN", "admin-1", { status: "APPROVED" });
+    expect(res.status).toBe(200);
+    expect(prisma.vehicle.update).toHaveBeenCalledWith({
+      where: { id: "vehicle-1" },
+      data: { status: "APPROVED", authorized: true },
+    });
+    expect(prisma.notification.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ organizationId: ORG_A, userId: "user-1" }),
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "UPDATE", "VEHICLE"));
+  });
+
+  it("el ADMIN rechaza y el vehículo queda sin autorización", async () => {
+    await callPatch("ADMIN", "admin-1", { status: "REJECTED", authorized: true });
+    expect(prisma.vehicle.update).toHaveBeenCalledWith({
+      where: { id: "vehicle-1" },
+      data: { status: "REJECTED", authorized: false },
+    });
+  });
+
+  it("ni el dueño ni un GUARD pueden responder la solicitud", async () => {
+    expect((await callPatch("USER", "user-1", { status: "APPROVED" })).status).toBe(403);
+    expect((await callPatch("GUARD", "guard-1", { status: "APPROVED" })).status).toBe(403);
+    expect(prisma.vehicle.update).not.toHaveBeenCalled();
+  });
+
+  it("no se puede autorizar un vehículo pendiente saltándose la aprobación", async () => {
+    const res = await callPatch("GUARD", "guard-1", { authorized: true });
+    expect(res.status).toBe(409);
+    expect(prisma.vehicle.update).not.toHaveBeenCalled();
+  });
+
+  it("un ADMIN de otra organización no puede aprobar el vehículo", async () => {
+    const res = await callPatch("ADMIN", "admin-b", { status: "APPROVED" }, ORG_B);
+    expect(res.status).toBe(404);
+    expect(prisma.vehicle.update).not.toHaveBeenCalled();
+    expect(prisma.notification.create).not.toHaveBeenCalled();
   });
 });
 

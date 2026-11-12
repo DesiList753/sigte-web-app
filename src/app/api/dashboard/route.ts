@@ -43,9 +43,9 @@ export const GET = withTenant(async (_req, { session }) => {
     blocks,
     topVehiclesRaw,
   ] = await Promise.all([
-    prisma.membership.count({ where: { organizationId, role: "USER" } }),
-    prisma.membership.count({ where: { organizationId, role: "GUARD" } }),
-    prisma.membership.count({ where: { organizationId, role: "ADMIN" } }),
+    prisma.membership.count({ where: { organizationId, status: "ACTIVE", role: "USER" } }),
+    prisma.membership.count({ where: { organizationId, status: "ACTIVE", role: "GUARD" } }),
+    prisma.membership.count({ where: { organizationId, status: "ACTIVE", role: "ADMIN" } }),
     prisma.vehicle.count({ where: { organizationId } }),
     prisma.vehicle.count({ where: { organizationId, authorized: true } }),
     prisma.parkingBlock.count({ where: { organizationId } }),

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, Badge, Modal } from "@/components/ui-system";
 import { I } from "@/components/Icon";
+import { useFeature } from "@/components/PlanContext";
 
 type User = {
   id: string;
@@ -16,6 +17,8 @@ type User = {
 };
 
 export default function AdminUsers() {
+  const credentials = useFeature("CREDENTIALS");
+  const columns = credentials ? 7 : 6;
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
@@ -42,7 +45,7 @@ export default function AdminUsers() {
     const r = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newUser),
+      body: JSON.stringify({ ...newUser, credentialId: credentials ? newUser.credentialId : "" }),
     });
     const data = await r.json();
     if (!r.ok) return toast.error(data.error ?? "Error");
@@ -108,7 +111,7 @@ export default function AdminUsers() {
             <tr>
               <th>Nombre</th>
               <th>Email</th>
-              <th>Credencial</th>
+              {credentials && <th>Credencial</th>}
               <th>Rol</th>
               <th style={{ textAlign: "center" }}>Autos</th>
               <th>Estado</th>
@@ -118,13 +121,13 @@ export default function AdminUsers() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 24 }} className="muted">
+                <td colSpan={columns} style={{ textAlign: "center", padding: 24 }} className="muted">
                   Cargando…
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 24 }} className="muted">
+                <td colSpan={columns} style={{ textAlign: "center", padding: 24 }} className="muted">
                   Sin usuarios
                 </td>
               </tr>
@@ -138,9 +141,11 @@ export default function AdminUsers() {
                     </span>
                   </td>
                   <td className="muted">{u.email}</td>
-                  <td className="mono" style={{ fontSize: 12 }}>
-                    {u.credentialId ?? "—"}
-                  </td>
+                  {credentials && (
+                    <td className="mono" style={{ fontSize: 12 }}>
+                      {u.credentialId ?? "—"}
+                    </td>
+                  )}
                   <td>
                     <select
                       className="select"
@@ -229,17 +234,19 @@ export default function AdminUsers() {
                 onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
               />
             </div>
-            <div className="field">
-              <label className="field-lbl" htmlFor="uid">
-                Credencial
-              </label>
-              <input
-                id="uid"
-                className="input"
-                value={newUser.credentialId}
-                onChange={(e) => setNewUser({ ...newUser, credentialId: e.target.value })}
-              />
-            </div>
+            {credentials && (
+              <div className="field">
+                <label className="field-lbl" htmlFor="uid">
+                  Credencial
+                </label>
+                <input
+                  id="uid"
+                  className="input"
+                  value={newUser.credentialId}
+                  onChange={(e) => setNewUser({ ...newUser, credentialId: e.target.value })}
+                />
+              </div>
+            )}
             <div className="field">
               <label className="field-lbl" htmlFor="new-user-role">Rol</label>
               <select

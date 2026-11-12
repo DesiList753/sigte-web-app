@@ -5,7 +5,7 @@ import { NextRequest } from "next/server";
 import { cache } from "react";
 import type { PlanFeature, Role } from "@prisma/client";
 import { COOKIE_NAME, verifyToken, type SessionPayload } from "./jwt";
-import { loadActor, type Actor } from "./actor";
+import { loadAccount, loadActor, type Actor } from "./actor";
 import type { PlanInfo } from "./plan";
 
 export type TenantRole = Exclude<Role, "SUPER_ADMIN">;
@@ -26,6 +26,7 @@ export type TenantSession = {
   organizationId: string;
   organization: OrganizationBrand;
   plan: PlanInfo;
+  credentials: boolean;
 };
 
 export async function hashPassword(password: string) {
@@ -106,7 +107,12 @@ export function asTenant(actor: Actor): TenantSession | null {
       brandColor: org.brandColor,
     },
     plan: org.plan,
+    credentials: org.credentialsEnabled && org.plan.features.includes("CREDENTIALS"),
   };
+}
+
+export function sessionFeatures(session: TenantSession) {
+  return session.plan.features.filter((feature) => feature !== "CREDENTIALS" || session.credentials);
 }
 
 export function homePath(role: Role) {
@@ -116,7 +122,23 @@ export function homePath(role: Role) {
   return "/user";
 }
 
+export const ACCOUNT_HOME = "/cuenta";
+
+export async function resolveAccount(session: SessionPayload | null) {
+  if (!session) return null;
+  const account = await loadAccount(session.sub);
+  return account && !account.platformAdmin ? account : null;
+}
+
 export const getActor = cache(async () => resolveActor(await getSession()));
+
+export const getAccount = cache(async () => resolveAccount(await getSession()));
+
+export async function requireAccount() {
+  const account = await getAccount();
+  if (!account) redirect("/login");
+  return account;
+}
 
 export async function requirePlatformActor() {
   const actor = await getActor();
@@ -127,7 +149,7 @@ export async function requirePlatformActor() {
 
 export async function requireTenantActor(roles: TenantRole[]) {
   const actor = await getActor();
-  if (!actor) redirect("/login");
+  if (!actor) redirect((await getAccount()) ? ACCOUNT_HOME : "/login");
   const tenant = asTenant(actor);
   if (!tenant) redirect(homePath(actor.role));
   if (actor.organization?.status !== "ACTIVE") redirect("/suspendida");

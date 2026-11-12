@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { homePath, setSessionCookie, verifyPassword } from "@/lib/auth";
+import { ACCOUNT_HOME, homePath, setSessionCookie, verifyPassword } from "@/lib/auth";
 import { signToken } from "@/lib/jwt";
 import { jsonError, parseJson } from "@/lib/api";
 import { LOCK_MS, isLocked, minutesRemaining, shouldLock } from "@/lib/loginPolicy";
@@ -29,18 +29,27 @@ export async function POST(req: NextRequest) {
       lockedUntil: true,
       lastOrganizationId: true,
       memberships: {
-        where: { active: true },
         orderBy: { createdAt: "asc" },
-        select: { role: true, organizationId: true, organization: { select: { slug: true, status: true } } },
+        select: {
+          role: true,
+          active: true,
+          status: true,
+          organizationId: true,
+          organization: { select: { slug: true, status: true } },
+        },
       },
     },
   });
 
-  const memberships = organizationSlug
+  const scoped = organizationSlug
     ? (user?.memberships ?? []).filter((m) => m.organization.slug === organizationSlug)
     : (user?.memberships ?? []);
+  const memberships = scoped.filter((m) => m.active && m.status === "ACTIVE");
+  const waiting = scoped.some((m) => m.status === "PENDING");
   const platform = !!user?.platformAdmin && !organizationSlug;
-  if (!user || (!platform && memberships.length === 0)) return jsonError(401, "Credenciales inválidas");
+  if (!user || (organizationSlug && memberships.length === 0 && !waiting)) {
+    return jsonError(401, "Credenciales inválidas");
+  }
 
   if (isLocked(user.lockedUntil)) {
     return jsonError(
@@ -61,15 +70,21 @@ export async function POST(req: NextRequest) {
     return jsonError(401, "Credenciales inválidas");
   }
 
+  if (organizationSlug && memberships.length === 0) {
+    return jsonError(403, "Tu solicitud de ingreso todavía no ha sido aceptada por la organización.", {
+      code: "REQUEST_PENDING",
+    });
+  }
+
   const available = memberships.filter((m) => m.organization.status === "ACTIVE");
-  if (!platform && available.length === 0) {
+  if (!platform && memberships.length > 0 && available.length === 0) {
     return jsonError(403, "La cuenta de tu organización está suspendida", { code: "ORG_SUSPENDED" });
   }
   const chosen = platform
     ? null
-    : (available.find((m) => m.organizationId === user.lastOrganizationId) ?? available[0]);
+    : (available.find((m) => m.organizationId === user.lastOrganizationId) ?? available[0] ?? null);
 
-  const role = chosen?.role ?? "SUPER_ADMIN";
+  const role = chosen?.role ?? (platform ? "SUPER_ADMIN" : "USER");
   const organizationId = chosen?.organizationId ?? null;
   const resetLock = user.failedLoginAttempts > 0 || !!user.lockedUntil;
   const changesLast = !!organizationId && organizationId !== user.lastOrganizationId;
@@ -92,6 +107,6 @@ export async function POST(req: NextRequest) {
     name: user.name,
     role,
     organizationId,
-    home: homePath(role),
+    home: platform || chosen ? homePath(role) : ACCOUNT_HOME,
   });
 }

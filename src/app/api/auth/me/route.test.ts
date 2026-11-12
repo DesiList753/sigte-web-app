@@ -31,7 +31,7 @@ describe("GET /api/auth/me", () => {
     const res = await GET(await tenantRequest("/api/auth/me", { role: "ADMIN" }));
     const { user } = await res.json();
     expect(prisma.membership.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: "admin-a", active: true } })
+      expect.objectContaining({ where: { userId: "admin-a", active: true, status: "ACTIVE" } })
     );
     expect(user).toMatchObject({ id: "admin-a", role: "ADMIN", credentialId: "A-1", organization: { id: "org-a" } });
     expect(user.organizations.map((o: { id: string }) => o.id)).toEqual(["org-a", "org-c"]);

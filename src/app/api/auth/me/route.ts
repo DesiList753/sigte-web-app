@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!actor) return NextResponse.json({ user: null });
 
   const memberships = await prisma.membership.findMany({
-    where: { userId: actor.id, active: true },
+    where: { userId: actor.id, active: true, status: "ACTIVE" },
     orderBy: { createdAt: "asc" },
     select: {
       role: true,

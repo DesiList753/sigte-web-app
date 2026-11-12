@@ -68,8 +68,23 @@ describe("GET /api/access/lookup", () => {
     await lookup("uid=USR-0001");
     expect(prisma.membership.findUnique).toHaveBeenCalledWith({
       where: { organizationId_credentialId: { organizationId: ORG_A, credentialId: "USR-0001" } },
-      select: { userId: true },
+      select: { id: true, userId: true },
     });
+  });
+
+  it("no busca por credencial si la organización no usa credenciales", async () => {
+    const off = await GET(
+      await tenantRequest("/api/access/lookup?uid=USR-0001", { role: "GUARD", credentials: false }),
+      params({})
+    );
+    expect(off.status).toBe(403);
+    expect((await off.json()).code).toBe("CREDENTIALS_OFF");
+    const noPlan = await GET(
+      await tenantRequest("/api/access/lookup?uid=USR-0001", { role: "GUARD", plan: { name: "Pro", features: ["QR"] } }),
+      params({})
+    );
+    expect(noPlan.status).toBe(403);
+    expect(prisma.membership.findUnique).not.toHaveBeenCalled();
   });
 
   it("muestra la credencial y el rol del dueño solo en esta organización", async () => {

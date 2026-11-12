@@ -13,6 +13,7 @@ type Vehicle = {
   model: string | null;
   color: string | null;
   authorized: boolean;
+  status: "PENDING" | "APPROVED" | "REJECTED";
   owner: { id: string; name: string; email: string };
   currentBlock: { id: string; name: string } | null;
 };
@@ -129,6 +130,17 @@ function AdminVehicles() {
     load();
   }
 
+  async function answer(v: Vehicle, status: "APPROVED" | "REJECTED") {
+    const r = await fetch(`/api/vehicles/${v.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!r.ok) return toast.error("No se pudo responder la solicitud");
+    toast.success(status === "APPROVED" ? "Vehículo aprobado" : "Solicitud rechazada");
+    load();
+  }
+
   async function remove(v: Vehicle) {
     if (!confirm(`¿Eliminar patente ${v.plate}?`)) return;
     const r = await fetch(`/api/vehicles/${v.id}`, { method: "DELETE" });
@@ -208,19 +220,36 @@ function AdminVehicles() {
                   )}
                 </td>
                 <td>
-                  <Badge kind={v.authorized ? "go" : "no"}>
-                    {v.authorized ? "Autorizado" : "Bloqueado"}
-                  </Badge>
+                  {v.status === "PENDING" ? (
+                    <Badge kind="wait">Por aprobar</Badge>
+                  ) : v.status === "REJECTED" ? (
+                    <Badge kind="no">Rechazado</Badge>
+                  ) : (
+                    <Badge kind={v.authorized ? "go" : "no"}>{v.authorized ? "Autorizado" : "Bloqueado"}</Badge>
+                  )}
                 </td>
                 <td>
                   <span className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
-                    <button
-                      className="btn ghost icon"
-                      title={v.authorized ? "Bloquear" : "Autorizar"}
-                      onClick={() => toggleAuth(v)}
-                    >
-                      <I name={v.authorized ? "shieldAlert" : "shieldCheck"} size={16} />
-                    </button>
+                    {v.status === "APPROVED" ? (
+                      <button
+                        className="btn ghost icon"
+                        title={v.authorized ? "Bloquear" : "Autorizar"}
+                        onClick={() => toggleAuth(v)}
+                      >
+                        <I name={v.authorized ? "shieldAlert" : "shieldCheck"} size={16} />
+                      </button>
+                    ) : (
+                      <>
+                        <button className="btn ghost icon" title="Aprobar solicitud" onClick={() => answer(v, "APPROVED")}>
+                          <I name="check" size={16} />
+                        </button>
+                        {v.status === "PENDING" && (
+                          <button className="btn ghost icon" title="Rechazar solicitud" onClick={() => answer(v, "REJECTED")}>
+                            <I name="x" size={16} />
+                          </button>
+                        )}
+                      </>
+                    )}
                     <button
                       className="btn danger icon"
                       title="Eliminar"

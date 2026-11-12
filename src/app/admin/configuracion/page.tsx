@@ -10,6 +10,8 @@ import { orgTheme } from "@/lib/theme";
 
 type RegistrationForm = "BASIC" | "ACADEMIC";
 
+type JoinPolicy = "OPEN" | "APPROVAL" | "INVITE_ONLY";
+
 type Settings = {
   slug: string;
   name: string;
@@ -17,7 +19,9 @@ type Settings = {
   logoUrl: string | null;
   brandColor: string | null;
   registrationForm: RegistrationForm;
-  selfRegistration: boolean;
+  joinPolicy: JoinPolicy;
+  vehicleApproval: boolean;
+  credentialsEnabled: boolean;
   allowedEmailDomains: string[];
 };
 
@@ -26,7 +30,9 @@ type Form = {
   logoUrl: string;
   brandColor: string;
   registrationForm: RegistrationForm;
-  selfRegistration: boolean;
+  joinPolicy: JoinPolicy;
+  vehicleApproval: boolean;
+  credentialsEnabled: boolean;
   domains: string;
 };
 
@@ -47,13 +53,21 @@ const FORMS: { value: RegistrationForm; label: string; hint: string }[] = [
   { value: "ACADEMIC", label: "Académico", hint: "Alumnos y funcionarios: RUT, carrera o cargo." },
 ];
 
+const POLICIES: { value: JoinPolicy; label: string; hint: string }[] = [
+  { value: "OPEN", label: "Abierto", hint: "Quien tenga el enlace o el código entra de inmediato." },
+  { value: "APPROVAL", label: "Con aprobación", hint: "Cada persona envía una solicitud y tú la aceptas." },
+  { value: "INVITE_ONLY", label: "Solo por invitación", hint: "Solo entra quien tú invites por correo." },
+];
+
 function toForm(s: Settings): Form {
   return {
     displayName: s.displayName,
     logoUrl: s.logoUrl ?? "",
     brandColor: s.brandColor ?? "",
     registrationForm: s.registrationForm,
-    selfRegistration: s.selfRegistration,
+    joinPolicy: s.joinPolicy,
+    vehicleApproval: s.vehicleApproval,
+    credentialsEnabled: s.credentialsEnabled,
     domains: s.allowedEmailDomains.join(", "),
   };
 }
@@ -71,11 +85,13 @@ export default function AdminSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [saving, setSaving] = useState(false);
+  const [credentialsAvailable, setCredentialsAvailable] = useState(false);
 
   useEffect(() => {
     fetch("/api/organization")
       .then((r) => r.json())
-      .then((d: { organization: Settings }) => {
+      .then((d: { organization: Settings; credentialsAvailable: boolean }) => {
+        setCredentialsAvailable(d.credentialsAvailable);
         setSettings(d.organization);
         setForm(toForm(d.organization));
       });
@@ -121,7 +137,9 @@ export default function AdminSettings() {
           logoUrl: logo || null,
           brandColor: color ? color.toUpperCase() : null,
           registrationForm: form.registrationForm,
-          selfRegistration: form.selfRegistration,
+          joinPolicy: form.joinPolicy,
+          vehicleApproval: form.vehicleApproval,
+          ...(credentialsAvailable ? { credentialsEnabled: form.credentialsEnabled } : {}),
           allowedEmailDomains: parseDomains(form.domains),
         }),
       });
@@ -310,25 +328,82 @@ export default function AdminSettings() {
                 Copiar
               </button>
             </div>
-            <span className="field-hint">Compártelo con tus conductores para que creen su cuenta.</span>
+            <span className="field-hint">
+              Compártelo con tus conductores. Quien ya tiene cuenta también puede unirse con el código{" "}
+              <b>{settings.slug}</b>.
+            </span>
+          </div>
+
+          <div className="field">
+            <span className="field-lbl">Ingreso de usuarios</span>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+              {POLICIES.map((p) => {
+                const on = form.joinPolicy === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => set("joinPolicy", p.value)}
+                    style={{
+                      textAlign: "left",
+                      padding: "12px 14px",
+                      borderRadius: 10,
+                      border: `1.5px solid ${on ? "var(--accent)" : "var(--line)"}`,
+                      background: on ? "var(--accent-050)" : "var(--surface)",
+                      cursor: "pointer",
+                      fontFamily: "var(--ff-body)",
+                    }}
+                  >
+                    <span style={{ display: "block", fontWeight: 600, fontSize: 14, color: on ? "var(--accent-700)" : "var(--ink-900)" }}>
+                      {p.label}
+                    </span>
+                    <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-500)", marginTop: 2 }}>{p.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <label className="row" style={{ gap: 12, cursor: "pointer" }}>
             <span className="switch">
               <input
                 type="checkbox"
-                checked={form.selfRegistration}
-                onChange={(e) => set("selfRegistration", e.target.checked)}
+                checked={form.vehicleApproval}
+                onChange={(e) => set("vehicleApproval", e.target.checked)}
               />
               <span className="track" />
               <span className="thumb" />
             </span>
             <span>
-              <span style={{ fontWeight: 600, fontSize: 14 }}>Registro abierto</span>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>Aprobar vehículos</span>
               <span className="muted" style={{ display: "block", fontSize: 12.5 }}>
-                {form.selfRegistration
-                  ? "Cualquiera con el enlace puede crear su cuenta."
-                  : "Solo la administración crea las cuentas."}
+                {form.vehicleApproval
+                  ? "Los vehículos que registran los usuarios quedan pendientes hasta que los apruebes."
+                  : "Los vehículos que registran los usuarios quedan autorizados de inmediato."}
+              </span>
+            </span>
+          </label>
+
+          <label className="row" style={{ gap: 12, cursor: credentialsAvailable ? "pointer" : "default" }}>
+            <span className="switch">
+              <input
+                type="checkbox"
+                disabled={!credentialsAvailable}
+                checked={credentialsAvailable && form.credentialsEnabled}
+                onChange={(e) => set("credentialsEnabled", e.target.checked)}
+              />
+              <span className="track" />
+              <span className="thumb" />
+            </span>
+            <span>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>Usar credenciales</span>
+              <span className="muted" style={{ display: "block", fontSize: 12.5 }}>
+                {!credentialsAvailable
+                  ? "Tu plan no incluye el acceso con credencial. Contacta a VanillaSoft para ampliarlo."
+                  : form.credentialsEnabled
+                    ? "Cada persona puede tener una credencial y el guardia puede validar el acceso con ella."
+                    : "La credencial no se pide en el registro ni aparece en el control de acceso."}
               </span>
             </span>
           </label>

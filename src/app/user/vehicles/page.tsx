@@ -12,6 +12,7 @@ type Vehicle = {
   model: string | null;
   color: string | null;
   authorized: boolean;
+  status: "PENDING" | "APPROVED" | "REJECTED";
   currentBlock: { id: string; name: string } | null;
 };
 
@@ -42,7 +43,11 @@ export default function UserVehicles() {
     });
     const data = await r.json();
     if (!r.ok) return toast.error(data.error ?? "Error");
-    toast.success("Vehículo registrado");
+    toast.success(
+      data.vehicle?.status === "PENDING"
+        ? "Solicitud enviada. La administración debe aprobar el vehículo."
+        : "Vehículo registrado"
+    );
     setForm({ plate: "", make: "", model: "", color: "" });
     setOpen(false);
     load();
@@ -87,9 +92,13 @@ export default function UserVehicles() {
               {v.color ? ` · ${v.color}` : ""}
             </div>
             <div className="row" style={{ gap: 6, marginTop: 12, flexWrap: "wrap" }}>
-              <Badge kind={v.authorized ? "go" : "no"}>
-                {v.authorized ? "Autorizado" : "Bloqueado"}
-              </Badge>
+              {v.status === "PENDING" ? (
+                <Badge kind="wait">Esperando aprobación</Badge>
+              ) : v.status === "REJECTED" ? (
+                <Badge kind="no">Solicitud rechazada</Badge>
+              ) : (
+                <Badge kind={v.authorized ? "go" : "no"}>{v.authorized ? "Autorizado" : "Bloqueado"}</Badge>
+              )}
               {v.currentBlock && <Badge kind="info">Dentro: {v.currentBlock.name}</Badge>}
             </div>
           </Card>

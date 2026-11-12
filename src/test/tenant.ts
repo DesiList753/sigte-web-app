@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { expect, vi } from "vitest";
 import type { OrganizationStatus } from "@prisma/client";
-import { loadActor } from "@/lib/actor";
+import { loadAccount, loadActor } from "@/lib/actor";
 import { COOKIE_NAME, signToken } from "@/lib/jwt";
 import type { TenantRole } from "@/lib/auth";
 import type { PlanInfo } from "@/lib/plan";
@@ -19,7 +19,7 @@ export const ORG_BRAND = {
 
 export const FULL_PLAN: PlanInfo = {
   name: "Prueba",
-  features: ["QR", "INFRACTIONS", "REPORTS"],
+  features: ["QR", "INFRACTIONS", "REPORTS", "CREDENTIALS"],
   maxUsers: null,
   maxGuards: null,
   maxBlocks: null,
@@ -32,6 +32,7 @@ type As = {
   organizationId?: string;
   status?: OrganizationStatus;
   active?: boolean;
+  credentials?: boolean;
   plan?: Partial<PlanInfo>;
 };
 
@@ -58,7 +59,12 @@ export async function tenantRequest(path: string, as: As, init: Init = {}) {
     role: as.role,
     active: as.active ?? true,
     organizationId,
-    organization: { status: as.status ?? "ACTIVE", ...ORG_BRAND, plan: { ...FULL_PLAN, ...as.plan } },
+    organization: {
+      status: as.status ?? "ACTIVE",
+      credentialsEnabled: as.credentials ?? true,
+      ...ORG_BRAND,
+      plan: { ...FULL_PLAN, ...as.plan },
+    },
   });
   const token = await signToken({ sub, email, role: as.role, name: sub, organizationId });
   return build(path, token, init);
@@ -81,6 +87,22 @@ export async function platformRequest(path: string, init: Init = {}) {
     name: "Equipo VanillaSoft",
     organizationId: null,
   });
+  return build(path, token, init);
+}
+
+type AsAccount = { sub?: string; email?: string; rut?: string | null; platformAdmin?: boolean };
+
+export async function accountRequest(path: string, as: AsAccount = {}, init: Init = {}) {
+  const sub = as.sub ?? "persona-1";
+  const email = as.email ?? `${sub}@test.cl`;
+  vi.mocked(loadAccount).mockResolvedValue({
+    id: sub,
+    email,
+    name: sub,
+    rut: as.rut ?? null,
+    platformAdmin: as.platformAdmin ?? false,
+  });
+  const token = await signToken({ sub, email, role: "USER", name: sub, organizationId: null });
   return build(path, token, init);
 }
 

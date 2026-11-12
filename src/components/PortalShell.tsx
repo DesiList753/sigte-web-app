@@ -35,6 +35,9 @@ export function PortalShell({ tabs, userName, brand, organizations, currentOrgan
           </Link>
           <div style={{ flex: 1 }} />
           <OrgSwitcher options={organizations} current={currentOrganizationId} />
+          <Link href="/cuenta" className="btn ghost icon" title="Mis organizaciones" aria-label="Mis organizaciones">
+            <I name="users" size={18} />
+          </Link>
           <Link href="/user/notifications" className="btn ghost icon" title="Notificaciones" aria-label="Notificaciones" style={{ position: "relative" }}>
             <I name="bell" size={18} />
             {unreadCount > 0 && (

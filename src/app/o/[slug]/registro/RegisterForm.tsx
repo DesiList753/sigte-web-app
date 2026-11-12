@@ -2,41 +2,41 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { RegistrationForm } from "@prisma/client";
 import { I } from "@/components/Icon";
-import { formatRut, isValidRut } from "@/lib/rut";
+import {
+  EMPTY_PROFILE,
+  ProfileFields,
+  UserTypeToggle,
+  profileComplete,
+  profilePayload,
+  type Profile,
+  type UserType,
+} from "@/components/ProfileFields";
 
-type UserType = "STAFF" | "STUDENT";
-
-const EMPTY = {
-  name: "",
-  email: "",
-  password: "",
-  phone: "",
-  credentialId: "",
-  position: "",
-  department: "",
-  rut: "",
-  academicDepartment: "",
-  career: "",
-};
+const EMPTY = { name: "", email: "", password: "", phone: "" };
 
 export function RegisterForm({
   slug,
   organizationName,
   form: kind,
   domains,
+  approval,
+  credentials,
 }: {
   slug: string;
   organizationName: string;
   form: RegistrationForm;
   domains: string[];
+  approval: boolean;
+  credentials: boolean;
 }) {
   const router = useRouter();
   const academic = kind === "ACADEMIC";
   const [userType, setUserType] = useState<UserType>("STUDENT");
   const [form, setForm] = useState(EMPTY);
+  const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -44,42 +44,13 @@ export function RegisterForm({
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  const rutOk = useMemo(() => form.rut === "" || isValidRut(form.rut), [form.rut]);
-
   const baseOk =
     form.name.trim().length >= 2 &&
     /.+@.+\..+/.test(form.email) &&
     form.password.length > 0 &&
     form.phone.trim().length >= 6;
 
-  const canSubmit =
-    baseOk &&
-    (!academic ||
-      (userType === "STAFF"
-        ? form.position.trim() !== "" && form.department.trim() !== ""
-        : isValidRut(form.rut) && form.academicDepartment.trim() !== "" && form.career.trim() !== ""));
-
-  function payload() {
-    const base = {
-      organizationSlug: slug,
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      phone: form.phone,
-    };
-    if (!academic) return base;
-    const credentialId = form.credentialId || undefined;
-    return userType === "STAFF"
-      ? { ...base, userType, credentialId, position: form.position, department: form.department }
-      : {
-          ...base,
-          userType,
-          credentialId,
-          rut: formatRut(form.rut),
-          academicDepartment: form.academicDepartment,
-          career: form.career,
-        };
-  }
+  const canSubmit = baseOk && (!academic || profileComplete(userType, profile));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,7 +60,11 @@ export function RegisterForm({
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload()),
+        body: JSON.stringify({
+          organizationSlug: slug,
+          ...form,
+          ...(academic ? profilePayload(userType, profile) : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -105,35 +80,14 @@ export function RegisterForm({
   return (
     <>
       <p style={{ color: "var(--ink-500)", fontSize: 13.5, marginBottom: 20, lineHeight: 1.55 }}>
-        Con tu cuenta registras tus vehículos y ves tus accesos en {organizationName}. Si ya tienes cuenta en
-        S.I.G.T.E. por otra organización, usa el mismo correo y contraseña para unirte.
+        Con tu cuenta registras tus vehículos y ves tus accesos en {organizationName}.{" "}
+        {approval && "Tu ingreso queda pendiente hasta que la administración lo acepte. "}
+        Si ya tienes cuenta en S.I.G.T.E., usa el mismo correo y contraseña para unirte.
       </p>
 
-      {academic && (
-        <div className="field" style={{ marginBottom: 14 }}>
-          <span className="field-lbl">Tipo de usuario</span>
-          <div className="row" style={{ gap: 8 }}>
-            <button
-              type="button"
-              className={"btn block " + (userType === "STUDENT" ? "primary" : "ghost")}
-              aria-pressed={userType === "STUDENT"}
-              onClick={() => setUserType("STUDENT")}
-            >
-              Alumno
-            </button>
-            <button
-              type="button"
-              className={"btn block " + (userType === "STAFF" ? "primary" : "ghost")}
-              aria-pressed={userType === "STAFF"}
-              onClick={() => setUserType("STAFF")}
-            >
-              Funcionario o docente
-            </button>
-          </div>
-        </div>
-      )}
-
       <form onSubmit={submit} className="col" style={{ gap: 14 }}>
+        {academic && <UserTypeToggle value={userType} onChange={setUserType} />}
+
         <div className="field">
           <label className="field-lbl" htmlFor="name">Nombre completo</label>
           <input
@@ -145,26 +99,6 @@ export function RegisterForm({
             onChange={(e) => set("name", e.target.value)}
           />
         </div>
-
-        {academic && userType === "STUDENT" && (
-          <div className="field">
-            <label className="field-lbl" htmlFor="rut">RUT</label>
-            <input
-              id="rut"
-              className="input"
-              required
-              placeholder="12.345.678-9"
-              value={form.rut}
-              onChange={(e) => set("rut", e.target.value)}
-              onBlur={(e) => e.target.value && isValidRut(e.target.value) && set("rut", formatRut(e.target.value))}
-            />
-            {!rutOk && (
-              <span className="field-err" style={{ marginTop: 4 }}>
-                <I name="alert" size={13} /> RUT inválido
-              </span>
-            )}
-          </div>
-        )}
 
         <div className="field">
           <label className="field-lbl" htmlFor="phone">Teléfono</label>
@@ -180,73 +114,13 @@ export function RegisterForm({
           />
         </div>
 
-        {academic && userType === "STAFF" && (
-          <>
-            <div className="field">
-              <label className="field-lbl" htmlFor="position">Cargo</label>
-              <input
-                id="position"
-                className="input"
-                required
-                placeholder="Docente, Secretaria, Técnico…"
-                value={form.position}
-                onChange={(e) => set("position", e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label className="field-lbl" htmlFor="department">Departamento o Unidad</label>
-              <input
-                id="department"
-                className="input"
-                required
-                placeholder="Depto. de Informática, Bienestar…"
-                value={form.department}
-                onChange={(e) => set("department", e.target.value)}
-              />
-            </div>
-          </>
-        )}
-
-        {academic && userType === "STUDENT" && (
-          <>
-            <div className="field">
-              <label className="field-lbl" htmlFor="academicDepartment">Departamento Académico</label>
-              <input
-                id="academicDepartment"
-                className="input"
-                required
-                placeholder="Depto. de Informática"
-                value={form.academicDepartment}
-                onChange={(e) => set("academicDepartment", e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label className="field-lbl" htmlFor="career">Carrera</label>
-              <input
-                id="career"
-                className="input"
-                required
-                placeholder="Ingeniería Civil Informática"
-                value={form.career}
-                onChange={(e) => set("career", e.target.value)}
-              />
-            </div>
-          </>
-        )}
-
         {academic && (
-          <div className="field">
-            <label className="field-lbl" htmlFor="credentialId">
-              Credencial <span className="muted">(opcional)</span>
-            </label>
-            <input
-              id="credentialId"
-              className="input"
-              placeholder="USR-2026-123"
-              value={form.credentialId}
-              onChange={(e) => set("credentialId", e.target.value)}
-            />
-          </div>
+          <ProfileFields
+            userType={userType}
+            profile={profile}
+            credentials={credentials}
+            onChange={(key, value) => setProfile((p) => ({ ...p, [key]: value }))}
+          />
         )}
 
         <div className="field">
@@ -286,7 +160,8 @@ export function RegisterForm({
         )}
 
         <button className="btn primary block" type="submit" disabled={loading || !canSubmit}>
-          <I name="userCheck" size={18} /> {loading ? "Creando…" : "Crear mi cuenta"}
+          <I name="userCheck" size={18} />{" "}
+          {loading ? "Enviando…" : approval ? "Enviar solicitud" : "Crear mi cuenta"}
         </button>
 
         <p style={{ fontSize: 13, color: "var(--ink-500)", textAlign: "center", margin: 0 }}>

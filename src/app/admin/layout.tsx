@@ -2,12 +2,13 @@ import type { PlanFeature } from "@prisma/client";
 import { PanelShell, type PanelNavItem } from "@/components/PanelShell";
 import { PlanProvider } from "@/components/PlanContext";
 import { Toaster } from "@/components/ui/sonner";
-import { requireTenantActor } from "@/lib/auth";
+import { requireTenantActor, sessionFeatures } from "@/lib/auth";
 import { organizationOptions } from "@/lib/members";
 
 const items: (PanelNavItem & { feature?: PlanFeature })[] = [
   { href: "/admin", label: "Panel", icon: "dashboard" },
   { href: "/admin/users", label: "Usuarios", icon: "users" },
+  { href: "/admin/requests", label: "Solicitudes", icon: "userCheck" },
   { href: "/admin/vehicles", label: "Vehículos", icon: "car" },
   { href: "/admin/parking", label: "Bloques", icon: "parking" },
   { href: "/admin/events", label: "Eventos y avisos", icon: "calendar" },
@@ -19,7 +20,7 @@ const items: (PanelNavItem & { feature?: PlanFeature })[] = [
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requireTenantActor(["ADMIN"]);
-  const features = session.plan.features;
+  const features = sessionFeatures(session);
   const organizations = await organizationOptions(session.sub);
   const groups = [{ grp: "Administración", items: items.filter((it) => !it.feature || features.includes(it.feature)) }];
   return (

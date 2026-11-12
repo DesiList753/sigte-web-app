@@ -32,8 +32,15 @@ function request(email: string, password: string, extra: Record<string, unknown>
 const CORRECT_PASSWORD = "correcta123";
 let correctHash: string;
 
-function membership(organizationId: string, role = "USER", status = "ACTIVE") {
-  return { role, organizationId, organization: { slug: `${organizationId}-slug`, status } };
+function membership(organizationId: string, role = "USER", status = "ACTIVE", state: Record<string, unknown> = {}) {
+  return {
+    role,
+    active: true,
+    status: "ACTIVE",
+    organizationId,
+    organization: { slug: `${organizationId}-slug`, status },
+    ...state,
+  };
 }
 
 function user(overrides: Record<string, unknown> = {}) {
@@ -141,21 +148,47 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(401);
   });
 
-  it("sin membresías activas no entra aunque la clave sea correcta", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ memberships: [] }));
+  it("sin organizaciones entra a su cuenta, sin organización en la sesión", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ memberships: [], lastOrganizationId: null }));
     const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
+    expect(res.status).toBe(200);
+    expect((await res.json()).home).toBe("/cuenta");
+    const [, token] = (await cookieSet()).mock.calls[0];
+    expect(await verifyToken(token as string)).toMatchObject({ role: "USER", organizationId: null });
+  });
+
+  it("sin organizaciones no entra con una clave incorrecta", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ memberships: [] }));
+    const res = await POST(request("u@test.cl", "incorrecta"));
     expect(res.status).toBe(401);
     expect(await cookieSet()).not.toHaveBeenCalled();
   });
 
-  it("solo considera las membresías activas", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(user());
-    await POST(request("u@test.cl", CORRECT_PASSWORD));
-    expect(prisma.user.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({
-        select: expect.objectContaining({ memberships: expect.objectContaining({ where: { active: true } }) }),
-      })
-    );
+  it("no entra a una organización con la solicitud pendiente ni con la membresía desactivada", async () => {
+    const pending = membership("org-a", "USER", "ACTIVE", { active: false, status: "PENDING" });
+    const disabled = membership("org-b", "ADMIN", "ACTIVE", { active: false });
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ memberships: [pending, disabled] }));
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD));
+    expect((await res.json()).home).toBe("/cuenta");
+    const [, token] = (await cookieSet()).mock.calls[0];
+    expect(await verifyToken(token as string)).toMatchObject({ role: "USER", organizationId: null });
+  });
+
+  it("por el enlace de una organización avisa que la solicitud sigue pendiente", async () => {
+    const pending = membership("org-a", "USER", "ACTIVE", { active: false, status: "PENDING" });
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ memberships: [pending] }));
+    const res = await POST(request("u@test.cl", CORRECT_PASSWORD, { organizationSlug: "org-a-slug" }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("REQUEST_PENDING");
+    expect(await cookieSet()).not.toHaveBeenCalled();
+  });
+
+  it("por el enlace de una organización no revela la solicitud pendiente si la clave es incorrecta", async () => {
+    const pending = membership("org-a", "USER", "ACTIVE", { active: false, status: "PENDING" });
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(user({ memberships: [pending] }));
+    const res = await POST(request("u@test.cl", "incorrecta", { organizationSlug: "org-a-slug" }));
+    expect(res.status).toBe(401);
+    expect((await res.json()).code).toBeUndefined();
   });
 
   it("con varias organizaciones entra a la última que usó y con el rol que tiene ahí", async () => {

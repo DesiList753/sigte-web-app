@@ -34,6 +34,7 @@ const FEATURE_TEXT: Record<PlanFeature, string> = {
   QR: "el acceso con QR",
   INFRACTIONS: "las infracciones",
   REPORTS: "los reportes",
+  CREDENTIALS: "el acceso con credencial",
 };
 
 export function limitKindFor(role: Role): LimitKind {
@@ -42,10 +43,10 @@ export function limitKindFor(role: Role): LimitKind {
 
 export function countUsage(organizationId: string, kind: LimitKind) {
   if (kind === "users") {
-    return prisma.membership.count({ where: { organizationId, active: true, role: { in: ["USER", "ADMIN"] } } });
+    return prisma.membership.count({ where: { organizationId, active: true, status: "ACTIVE", role: { in: ["USER", "ADMIN"] } } });
   }
   if (kind === "guards") {
-    return prisma.membership.count({ where: { organizationId, active: true, role: "GUARD" } });
+    return prisma.membership.count({ where: { organizationId, active: true, status: "ACTIVE", role: "GUARD" } });
   }
   if (kind === "blocks") {
     return prisma.parkingBlock.count({ where: { organizationId, defaultOf: { is: null } } });

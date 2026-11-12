@@ -101,7 +101,9 @@ describe("PATCH /api/users/[id]", () => {
     const res = await callPatch("ADMIN", "admin-b", { role: "ADMIN" }, ORG_B);
     expect(res.status).toBe(404);
     expect(prisma.membership.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId_organizationId: { userId: "target-1", organizationId: ORG_B } } })
+      expect.objectContaining({
+        where: { userId_organizationId: { userId: "target-1", organizationId: ORG_B }, status: "ACTIVE" },
+      })
     );
     expect(prisma.membership.update).not.toHaveBeenCalled();
   });
@@ -112,7 +114,7 @@ describe("PATCH /api/users/[id]", () => {
     const res = await callPatch("ADMIN", "target-1", { role: "USER" });
     expect(res.status).toBe(409);
     expect(prisma.membership.count).toHaveBeenCalledWith({
-      where: { organizationId: ORG_A, role: "ADMIN", active: true, NOT: { userId: "target-1" } },
+      where: { organizationId: ORG_A, role: "ADMIN", active: true, status: "ACTIVE", NOT: { userId: "target-1" } },
     });
     expect(prisma.membership.update).not.toHaveBeenCalled();
   });

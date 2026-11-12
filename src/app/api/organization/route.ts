@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson, withTenant } from "@/lib/api";
+import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { auditData } from "@/lib/audit";
 import { organizationSettingsSchema } from "@/lib/organization-schema";
+import { featureBlock } from "@/lib/plan";
 
 const SELECT = {
   slug: true,
@@ -11,7 +12,9 @@ const SELECT = {
   logoUrl: true,
   brandColor: true,
   registrationForm: true,
-  selfRegistration: true,
+  joinPolicy: true,
+  vehicleApproval: true,
+  credentialsEnabled: true,
   allowedEmailDomains: true,
 } as const;
 
@@ -21,7 +24,10 @@ export const GET = withTenant(
       where: { id: session.organizationId },
       select: SELECT,
     });
-    return NextResponse.json({ organization });
+    return NextResponse.json({
+      organization,
+      credentialsAvailable: session.plan.features.includes("CREDENTIALS"),
+    });
   },
   { roles: ["ADMIN"] }
 );
@@ -31,6 +37,9 @@ export const PATCH = withTenant(
     const parsed = await parseJson(req, organizationSettingsSchema);
     if (!parsed.ok) return parsed.response;
     const data = parsed.data;
+
+    const noCredentials = data.credentialsEnabled ? featureBlock(session.plan, "CREDENTIALS") : null;
+    if (noCredentials) return planError(noCredentials);
 
     const current = await prisma.organization.findUnique({
       where: { id: session.organizationId },

@@ -49,11 +49,11 @@ describe("limitBlock", () => {
   it("cuenta solo los registros activos de la propia organización", async () => {
     await limitBlock("org-a", basico, "users");
     expect(prisma.membership.count).toHaveBeenCalledWith({
-      where: { organizationId: "org-a", active: true, role: { in: ["USER", "ADMIN"] } },
+      where: { organizationId: "org-a", active: true, status: "ACTIVE", role: { in: ["USER", "ADMIN"] } },
     });
     await limitBlock("org-a", basico, "guards");
     expect(prisma.membership.count).toHaveBeenLastCalledWith({
-      where: { organizationId: "org-a", active: true, role: "GUARD" },
+      where: { organizationId: "org-a", active: true, status: "ACTIVE", role: "GUARD" },
     });
   });
 

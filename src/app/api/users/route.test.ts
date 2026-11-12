@@ -36,6 +36,13 @@ describe("GET /api/users", () => {
     expect(prisma.membership.findMany).toHaveBeenCalledWith(scopedTo(ORG_A));
   });
 
+  it("no lista solicitudes pendientes ni rechazadas", async () => {
+    await GET(await tenantRequest("/api/users", { role: "ADMIN" }), params({}));
+    expect(prisma.membership.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { organizationId: ORG_A, status: "ACTIVE" } })
+    );
+  });
+
   it("entrega a cada persona con su rol en esta organización", async () => {
     vi.mocked(prisma.membership.findMany).mockResolvedValueOnce([
       {
@@ -87,12 +94,12 @@ describe("POST /api/users", () => {
     expect(prisma.auditLog.create).toHaveBeenCalledWith(auditedIn(ORG_A, "CREATE", "USER"));
   });
 
-  it("no suma a una persona que ya tiene cuenta y le pide que se una por el enlace", async () => {
+  it("no suma a una persona que ya tiene cuenta y pide invitarla", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ id: "existente" } as never);
     const req = await tenantRequest("/api/users", { role: "ADMIN" }, { method: "POST", body: newUser });
     const res = await POST(req, params({}));
     expect(res.status).toBe(409);
-    expect((await res.json()).error).toMatch(/enlace de registro/);
+    expect((await res.json()).error).toMatch(/invitación/);
     expect(prisma.membership.create).not.toHaveBeenCalled();
   });
 
@@ -108,7 +115,19 @@ describe("POST /api/users", () => {
     const body = await res.json();
     expect(body.code).toBe("PLAN_LIMIT");
     expect(body.error).toBe("Tu plan Básico permite hasta 2 guardias. Contacta a VanillaSoft para ampliarlo.");
-    expect(prisma.membership.count).toHaveBeenCalledWith({ where: { organizationId: ORG_A, active: true, role: "GUARD" } });
+    expect(prisma.membership.count).toHaveBeenCalledWith({ where: { organizationId: ORG_A, active: true, status: "ACTIVE", role: "GUARD" } });
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it("no asigna credencial si la organización no usa credenciales", async () => {
+    const req = await tenantRequest(
+      "/api/users",
+      { role: "ADMIN", credentials: false },
+      { method: "POST", body: { ...newUser, credentialId: "C-1" } }
+    );
+    const res = await POST(req, params({}));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("CREDENTIALS_OFF");
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
@@ -119,7 +138,7 @@ describe("POST /api/users", () => {
     expect(res.status).toBe(409);
     expect(prisma.membership.findUnique).toHaveBeenLastCalledWith({
       where: { organizationId_credentialId: { organizationId: ORG_A, credentialId: "C-1" } },
-      select: { userId: true },
+      select: { id: true, userId: true },
     });
     expect(prisma.user.create).not.toHaveBeenCalled();
   });

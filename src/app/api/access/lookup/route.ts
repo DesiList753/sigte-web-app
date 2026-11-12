@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { jsonError, planError, withTenant } from "@/lib/api";
+import { credentialsOff, jsonError, planError, withTenant } from "@/lib/api";
 import { featureBlock } from "@/lib/plan";
 import { memberByCredential, ownerSelect, withFlatOwner } from "@/lib/members";
 import { verifyQrToken } from "@/lib/qr";
@@ -40,6 +40,7 @@ export const GET = withTenant(
         include,
       });
     } else if (uid) {
+      if (!session.credentials) return credentialsOff();
       const member = await memberByCredential(organizationId, uid);
       if (member) {
         vehicle = await prisma.vehicle.findFirst({

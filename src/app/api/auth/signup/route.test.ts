@@ -55,7 +55,7 @@ describe("POST /api/auth/signup", () => {
     vi.clearAllMocks();
     vi.mocked(prisma.organization.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
-    vi.mocked(prisma.plan.findUnique).mockResolvedValue({ id: "plan_basico", code: "basico" } as never);
+    vi.mocked(prisma.plan.findUnique).mockResolvedValue({ id: "plan_gratis", code: "gratis" } as never);
     vi.mocked(prisma.$transaction).mockImplementation(((fn: (client: typeof tx) => unknown) => fn(tx)) as never);
     tx.organization.create.mockImplementation(({ data }) => Promise.resolve({ id: "org-new", ...data }));
     tx.parkingBlock.create.mockResolvedValue({ id: "block-new" });
@@ -72,7 +72,7 @@ describe("POST /api/auth/signup", () => {
         name: "Clínica Los Andes",
         displayName: "Clínica Los Andes",
         slug: "clinica-los-andes",
-        planId: "plan_basico",
+        planId: "plan_gratis",
       },
     });
     expect(tx.parkingBlock.create).toHaveBeenCalledWith({
@@ -135,13 +135,13 @@ describe("POST /api/auth/signup", () => {
 
   it("ignora el plan, el rol y la organización que vengan en el envío", async () => {
     await POST(
-      request({ ...form, planId: "plan_institucional", organizationId: "org-b", role: "SUPER_ADMIN", status: "SUSPENDED" })
+      request({ ...form, planId: "plan_organizacional", organizationId: "org-b", role: "SUPER_ADMIN", status: "SUSPENDED" })
     );
-    expect(prisma.plan.findUnique).toHaveBeenCalledWith({ where: { code: "basico" }, select: { id: true, code: true } });
+    expect(prisma.plan.findUnique).toHaveBeenCalledWith({ where: { code: "gratis" }, select: { id: true, code: true } });
     expect(tx.organization.create).toHaveBeenCalledWith({
       data: expect.not.objectContaining({ status: expect.anything() }),
     });
-    expect(tx.organization.create).toHaveBeenCalledWith({ data: expect.objectContaining({ planId: "plan_basico" }) });
+    expect(tx.organization.create).toHaveBeenCalledWith({ data: expect.objectContaining({ planId: "plan_gratis" }) });
     expect(tx.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ memberships: { create: { organizationId: "org-new", role: "ADMIN" } } }),
     });

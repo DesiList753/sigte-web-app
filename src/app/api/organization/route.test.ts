@@ -25,7 +25,9 @@ const current = {
   logoUrl: null,
   brandColor: null,
   registrationForm: "BASIC",
-  selfRegistration: true,
+  joinPolicy: "OPEN",
+  vehicleApproval: false,
+  credentialsEnabled: false,
   allowedEmailDomains: [],
 };
 
@@ -43,6 +45,16 @@ describe("GET /api/organization", () => {
     const res = await GET(await tenantRequest("/api/organization", { role: "ADMIN" }), params({}));
     expect(res.status).toBe(200);
     expect(prisma.organization.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: ORG_A } }));
+  });
+
+  it("indica si el plan permite activar las credenciales", async () => {
+    const withPlan = await GET(await tenantRequest("/api/organization", { role: "ADMIN" }), params({}));
+    expect((await withPlan.json()).credentialsAvailable).toBe(true);
+    const withoutPlan = await GET(
+      await tenantRequest("/api/organization", { role: "ADMIN", plan: { name: "Gratis", features: ["QR"] } }),
+      params({})
+    );
+    expect((await withoutPlan.json()).credentialsAvailable).toBe(false);
   });
 
   it("no la entrega a un guardia", async () => {
@@ -97,13 +109,35 @@ describe("PATCH /api/organization", () => {
     expect(prisma.organization.update).not.toHaveBeenCalled();
   });
 
-  it("guarda los dominios en minúsculas y abre o cierra el registro", async () => {
-    await patch({ allowedEmailDomains: [" Organizacion.CL "], selfRegistration: false, registrationForm: "ACADEMIC" });
+  it("guarda los dominios en minúsculas y la forma de ingreso", async () => {
+    await patch({ allowedEmailDomains: [" Organizacion.CL "], joinPolicy: "APPROVAL", vehicleApproval: true, registrationForm: "ACADEMIC" });
     expect(prisma.organization.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { allowedEmailDomains: ["organizacion.cl"], selfRegistration: false, registrationForm: "ACADEMIC" },
+        data: {
+          allowedEmailDomains: ["organizacion.cl"],
+          joinPolicy: "APPROVAL",
+          vehicleApproval: true,
+          registrationForm: "ACADEMIC",
+        },
       })
     );
+  });
+
+  it("activa las credenciales solo si el plan las incluye", async () => {
+    await patch({ credentialsEnabled: true });
+    expect(prisma.organization.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: ORG_A }, data: { credentialsEnabled: true } })
+    );
+    vi.mocked(prisma.organization.update).mockClear();
+    const req = await tenantRequest(
+      "/api/organization",
+      { role: "ADMIN", plan: { name: "Gratis", features: ["QR"] } },
+      { method: "PATCH", body: { credentialsEnabled: true } }
+    );
+    const res = await PATCH(req, params({}));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("PLAN_FEATURE");
+    expect(prisma.organization.update).not.toHaveBeenCalled();
   });
 
   it("no registra auditoría si nada cambió", async () => {

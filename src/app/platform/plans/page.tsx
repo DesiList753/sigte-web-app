@@ -6,7 +6,7 @@ import { Badge, Card, Modal } from "@/components/ui-system";
 import { I } from "@/components/Icon";
 import { slugify } from "@/lib/slug";
 
-type Feature = "QR" | "INFRACTIONS" | "REPORTS";
+type Feature = "QR" | "INFRACTIONS" | "REPORTS" | "CREDENTIALS";
 
 type Plan = {
   id: string;
@@ -33,6 +33,7 @@ const FEATURES: { key: Feature; label: string }[] = [
   { key: "QR", label: "QR" },
   { key: "INFRACTIONS", label: "Infracciones" },
   { key: "REPORTS", label: "Reportes" },
+  { key: "CREDENTIALS", label: "Credenciales" },
 ];
 
 type Form = { code: string; name: string; features: Feature[] } & Record<LimitField, string>;

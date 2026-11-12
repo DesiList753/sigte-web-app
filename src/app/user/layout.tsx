@@ -2,7 +2,7 @@ import type { PlanFeature } from "@prisma/client";
 import { PortalShell, type PortalTab } from "@/components/PortalShell";
 import { PlanProvider } from "@/components/PlanContext";
 import { Toaster } from "@/components/ui/sonner";
-import { requireTenantActor } from "@/lib/auth";
+import { requireTenantActor, sessionFeatures } from "@/lib/auth";
 import { organizationOptions } from "@/lib/members";
 
 const tabs: (PortalTab & { feature?: PlanFeature })[] = [
@@ -16,7 +16,7 @@ const tabs: (PortalTab & { feature?: PlanFeature })[] = [
 
 export default async function UserLayout({ children }: { children: React.ReactNode }) {
   const session = await requireTenantActor(["USER", "GUARD", "ADMIN"]);
-  const features = session.plan.features;
+  const features = sessionFeatures(session);
   const organizations = await organizationOptions(session.sub);
   return (
     <PlanProvider features={features}>

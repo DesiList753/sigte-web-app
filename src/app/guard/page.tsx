@@ -33,6 +33,7 @@ type LookupResponse = { vehicle: Vehicle | null; openInfractions?: number; qrErr
 
 export default function GuardAccess() {
   const qrEnabled = useFeature("QR");
+  const credentialsEnabled = useFeature("CREDENTIALS");
   const [mode, setMode] = useState<"plate" | "qr" | "uid">("plate");
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<LookupResponse | null>(null);
@@ -107,7 +108,7 @@ export default function GuardAccess() {
   const MODES: { id: typeof mode; label: string; icon: string }[] = [
     { id: "plate", label: "Patente", icon: "camera" },
     ...(qrEnabled ? [{ id: "qr" as const, label: "QR", icon: "qr" }] : []),
-    { id: "uid", label: "U-Card", icon: "idcard" },
+    ...(credentialsEnabled ? [{ id: "uid" as const, label: "Credencial", icon: "idcard" }] : []),
   ];
 
   return (
@@ -116,7 +117,9 @@ export default function GuardAccess() {
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Control de acceso</h1>
           <p className="muted" style={{ fontSize: 13 }}>
-            Validación por patente, código QR o credencial
+            {["Validación por patente", qrEnabled && "código QR", credentialsEnabled && "credencial"]
+              .filter(Boolean)
+              .join(", ")}
           </p>
         </div>
         <Link href="/guard/occupancy" className="btn ghost">

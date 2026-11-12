@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { memberByCredential } from "@/lib/members";
-import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
+import { credentialsOff, jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { findBlockingEventForBlock } from "@/lib/events";
 import { featureBlock } from "@/lib/plan";
 import { verifyQrToken } from "@/lib/qr";
@@ -74,6 +74,7 @@ export const POST = withTenant(
 
     const blocked = body.qrToken || body.method === "QR" ? featureBlock(session.plan, "QR") : null;
     if (blocked) return planError(blocked);
+    if (body.method === "CARD" && !session.credentials) return credentialsOff();
 
     let vehicle = null;
     if (body.vehicleId) {

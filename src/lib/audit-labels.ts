@@ -36,6 +36,8 @@ const DETAIL_LABEL: Record<string, string> = {
   slug: "Slug",
   active: "Activo",
   fields: "Campos",
+  request: "Solicitud",
+  invitation: "Invitación",
 };
 
 const DETAIL_ORDER = Object.keys(DETAIL_LABEL);
@@ -47,7 +49,9 @@ const FIELD_LABEL: Record<string, string> = {
   logoUrl: "logo",
   brandColor: "color",
   registrationForm: "formulario de registro",
-  selfRegistration: "registro abierto",
+  joinPolicy: "ingreso de usuarios",
+  vehicleApproval: "aprobación de vehículos",
+  credentialsEnabled: "acceso con credencial",
   allowedEmailDomains: "dominios permitidos",
   maxUsers: "máximo de usuarios",
   maxGuards: "máximo de guardias",
@@ -68,6 +72,9 @@ const VALUE_LABEL: Record<string, string> = {
   NOTICE: "Aviso",
   ENDED: "Finalizado",
   CANCELLED: "Cancelado",
+  ACCEPTED: "Aceptada",
+  REJECTED: "Rechazada",
+  PENDING: "Pendiente",
 };
 
 function formatValue(key: string, value: unknown): string {

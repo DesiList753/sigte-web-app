@@ -17,7 +17,7 @@ export async function usageByOrganization(organizationId?: string) {
   const [users, vehicles, blocks, accesses] = await Promise.all([
     prisma.membership.groupBy({
       by: ["organizationId", "role"],
-      where: scope,
+      where: { ...scope, status: "ACTIVE" },
       _count: { _all: true },
     }),
     prisma.vehicle.groupBy({ by: ["organizationId"], where: scope, _count: { _all: true } }),

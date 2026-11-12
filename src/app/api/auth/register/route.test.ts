@@ -21,9 +21,12 @@ vi.mock("@/lib/prisma", async () => {
       },
       membership: {
         findUnique: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([{ userId: "admin-a" }]),
         count: vi.fn().mockResolvedValue(0),
         create: vi.fn().mockResolvedValue({}),
+        update: vi.fn().mockResolvedValue({}),
       },
+      notification: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
     }),
   };
 });
@@ -36,11 +39,13 @@ import { POST } from "./route";
 
 const ORG = {
   id: "org-a",
+  displayName: "Org A",
   status: "ACTIVE",
-  selfRegistration: true,
+  joinPolicy: "OPEN",
+  credentialsEnabled: true,
   registrationForm: "ACADEMIC",
   allowedEmailDomains: [] as string[],
-  plan: { name: "Básico", features: ["QR"], maxUsers: null, maxGuards: null, maxBlocks: null, maxVehicles: null },
+  plan: { name: "Organizacional", features: ["QR", "CREDENTIALS"], maxUsers: null, maxGuards: null, maxBlocks: null, maxVehicles: null },
 };
 
 const basic = {
@@ -134,9 +139,35 @@ describe("POST /api/auth/register", () => {
   });
 
   it("no permite registrarse si la organización cerró el registro", async () => {
-    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, selfRegistration: false } as never);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, joinPolicy: "INVITE_ONLY" } as never);
     const res = await POST(request(student));
     expect(res.status).toBe(403);
+    expect(prisma.membership.create).not.toHaveBeenCalled();
+  });
+
+  it("con aprobación deja la solicitud pendiente, avisa a la administración y no abre la organización", async () => {
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      ...ORG,
+      joinPolicy: "APPROVAL",
+      plan: { ...ORG.plan, maxUsers: 0 },
+    } as never);
+    const res = await POST(request(student));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ pending: true, organizationId: null, home: "/cuenta" });
+    expect(prisma.membership.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ organizationId: "org-a", role: "USER", status: "PENDING", active: false }),
+    });
+    expect(prisma.membership.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { organizationId: "org-a", role: "ADMIN", active: true, status: "ACTIVE" } })
+    );
+    expect(prisma.notification.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ organizationId: "org-a", userId: "admin-a" })],
+    });
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
+    const created = vi.mocked(prisma.user.create).mock.calls[0][0] as { data: Record<string, unknown> };
+    expect(created.data.lastOrganizationId).toBeUndefined();
+    const [, token] = vi.mocked((await cookies()).set).mock.calls[0];
+    expect(await verifyToken(token as string)).toMatchObject({ sub: "new-user", organizationId: null });
   });
 
   it("no registra si la organización llegó al tope de usuarios de su plan", async () => {
@@ -148,7 +179,7 @@ describe("POST /api/auth/register", () => {
     expect(body.code).toBe("PLAN_LIMIT");
     expect(body.error).toMatch(/máximo de usuarios/);
     expect(prisma.membership.count).toHaveBeenCalledWith({
-      where: { organizationId: "org-a", active: true, role: { in: ["USER", "ADMIN"] } },
+      where: { organizationId: "org-a", active: true, status: "ACTIVE", role: { in: ["USER", "ADMIN"] } },
     });
     expect(prisma.membership.create).not.toHaveBeenCalled();
   });
@@ -166,7 +197,7 @@ describe("POST /api/auth/register", () => {
     const res = await POST(request(basic));
     expect(res.status).toBe(200);
     expect(prisma.membership.create).toHaveBeenCalledWith({
-      data: { userId: "new-user", organizationId: "org-a", role: "USER" },
+      data: { userId: "new-user", organizationId: "org-a", role: "USER", status: "ACTIVE", active: true },
     });
   });
 
@@ -176,7 +207,33 @@ describe("POST /api/auth/register", () => {
     const user = vi.mocked(prisma.user.create).mock.calls[0][0] as { data: Record<string, unknown> };
     const member = vi.mocked(prisma.membership.create).mock.calls[0][0] as { data: Record<string, unknown> };
     expect(user.data.rut).toBeNull();
-    expect(member.data).toEqual({ userId: "new-user", organizationId: "org-a", role: "USER" });
+    expect(member.data).toEqual({
+      userId: "new-user",
+      organizationId: "org-a",
+      role: "USER",
+      status: "ACTIVE",
+      active: true,
+    });
+  });
+
+  it("guarda la credencial solo si la organización usa credenciales", async () => {
+    await POST(request({ ...student, credentialId: "CRED-1" }));
+    expect(prisma.membership.create).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({ credentialId: "CRED-1" }),
+    });
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, credentialsEnabled: false } as never);
+    await POST(request({ ...student, credentialId: "CRED-1" }));
+    expect(prisma.membership.create).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({ credentialId: null }),
+    });
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      ...ORG,
+      plan: { ...ORG.plan, features: ["QR"] },
+    } as never);
+    await POST(request({ ...student, credentialId: "CRED-1" }));
+    expect(prisma.membership.create).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({ credentialId: null }),
+    });
   });
 
   it("una cuenta nueva necesita una contraseña de al menos 8 caracteres", async () => {
@@ -234,10 +291,30 @@ describe("POST /api/auth/register con una cuenta que ya existe", () => {
   });
 
   it("no se une dos veces a la misma organización", async () => {
-    withExisting(await existingPerson({ memberships: [{ id: "mbr-1" }] }));
+    withExisting(await existingPerson({ memberships: [{ id: "mbr-1", status: "ACTIVE" }] }));
     const res = await POST(request(student));
     expect(res.status).toBe(409);
     expect(prisma.membership.create).not.toHaveBeenCalled();
+  });
+
+  it("no repite una solicitud que sigue pendiente", async () => {
+    withExisting(await existingPerson({ memberships: [{ id: "mbr-1", status: "PENDING" }] }));
+    const res = await POST(request(student));
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toMatch(/solicitud/);
+    expect(prisma.membership.update).not.toHaveBeenCalled();
+  });
+
+  it("tras un rechazo vuelve a solicitar sobre la misma membresía", async () => {
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ ...ORG, joinPolicy: "APPROVAL" } as never);
+    withExisting(await existingPerson({ memberships: [{ id: "mbr-1", status: "REJECTED" }] }));
+    const res = await POST(request(student));
+    expect(res.status).toBe(200);
+    expect(prisma.membership.create).not.toHaveBeenCalled();
+    expect(prisma.membership.update).toHaveBeenCalledWith({
+      where: { id: "mbr-1" },
+      data: expect.objectContaining({ status: "PENDING", active: false, career: "Ingeniería" }),
+    });
   });
 
   it("el RUT tiene que coincidir con el de su cuenta", async () => {

@@ -24,13 +24,13 @@ export function withFlatOwner<T extends { owner: WithMemberships }>(vehicle: T) 
 export function memberByCredential(organizationId: string, credentialId: string) {
   return prisma.membership.findUnique({
     where: { organizationId_credentialId: { organizationId, credentialId } },
-    select: { userId: true },
+    select: { id: true, userId: true },
   });
 }
 
 export function myOrganizations(userId: string) {
   return prisma.membership.findMany({
-    where: { userId, active: true, organization: { status: "ACTIVE" } },
+    where: { userId, active: true, status: "ACTIVE", organization: { status: "ACTIVE" } },
     orderBy: { createdAt: "asc" },
     select: { organizationId: true, organization: { select: { displayName: true } } },
   });

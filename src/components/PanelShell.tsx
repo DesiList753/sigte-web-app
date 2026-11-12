@@ -71,6 +71,11 @@ function TopBar({ title, subtitle, userName, userRole, organizations, currentOrg
       </div>
       <div style={{ flex: 1 }} />
       {organizations && currentOrganizationId && <OrgSwitcher options={organizations} current={currentOrganizationId} />}
+      {organizations && (
+        <Link href="/cuenta" className="btn ghost icon" title="Mis organizaciones" aria-label="Mis organizaciones">
+          <I name="users" size={18} />
+        </Link>
+      )}
       {notificationsHref && (
         <Link
           href={notificationsHref}

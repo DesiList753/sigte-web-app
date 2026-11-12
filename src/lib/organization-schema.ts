@@ -15,7 +15,9 @@ export const organizationSettingsSchema = z
       .refine(readableOnWhite, "Ese color es muy claro: el texto blanco no se leería. Elige uno más oscuro.")
       .nullable(),
     registrationForm: z.enum(["BASIC", "ACADEMIC"]),
-    selfRegistration: z.boolean(),
+    joinPolicy: z.enum(["OPEN", "APPROVAL", "INVITE_ONLY"]),
+    vehicleApproval: z.boolean(),
+    credentialsEnabled: z.boolean(),
     allowedEmailDomains: z.array(
       z
         .string()

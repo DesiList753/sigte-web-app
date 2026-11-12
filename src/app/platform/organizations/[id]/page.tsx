@@ -19,7 +19,7 @@ type Organization = {
   brandColor: string | null;
   status: "ACTIVE" | "SUSPENDED";
   registrationForm: "BASIC" | "ACADEMIC";
-  selfRegistration: boolean;
+  joinPolicy: "OPEN" | "APPROVAL" | "INVITE_ONLY";
   allowedEmailDomains: string[];
   planId: string;
   plan: { id: string; code: string; name: string };
@@ -65,7 +65,7 @@ type Form = {
   logoUrl: string;
   brandColor: string;
   registrationForm: "BASIC" | "ACADEMIC";
-  selfRegistration: boolean;
+  joinPolicy: Organization["joinPolicy"];
   allowedEmailDomains: string;
 };
 
@@ -77,7 +77,7 @@ function toForm(o: Organization): Form {
     logoUrl: o.logoUrl ?? "",
     brandColor: o.brandColor ?? "",
     registrationForm: o.registrationForm,
-    selfRegistration: o.selfRegistration,
+    joinPolicy: o.joinPolicy,
     allowedEmailDomains: o.allowedEmailDomains.join(", "),
   };
 }
@@ -133,7 +133,7 @@ export default function PlatformOrganizationDetail() {
         logoUrl: form.logoUrl.trim() || null,
         brandColor: form.brandColor.trim() || null,
         registrationForm: form.registrationForm,
-        selfRegistration: form.selfRegistration,
+        joinPolicy: form.joinPolicy,
         allowedEmailDomains: form.allowedEmailDomains
           .split(",")
           .map((d) => d.trim().toLowerCase())
@@ -250,10 +250,19 @@ export default function PlatformOrganizationDetail() {
                 <option value="ACADEMIC">Académico (alumnos y funcionarios)</option>
               </select>
             </div>
-            <label className="row" style={{ gap: 8, fontSize: 14 }}>
-              <input type="checkbox" checked={form.selfRegistration} onChange={(e) => setForm({ ...form, selfRegistration: e.target.checked })} />
-              Permitir que los usuarios se registren solos
-            </label>
+            <div className="field">
+              <label className="field-lbl" htmlFor="joinPolicy">Ingreso de usuarios</label>
+              <select
+                id="joinPolicy"
+                className="select"
+                value={form.joinPolicy}
+                onChange={(e) => setForm({ ...form, joinPolicy: e.target.value as Form["joinPolicy"] })}
+              >
+                <option value="OPEN">Abierto</option>
+                <option value="APPROVAL">Con aprobación de la administración</option>
+                <option value="INVITE_ONLY">Solo por invitación</option>
+              </select>
+            </div>
             <div className="field">
               <label className="field-lbl" htmlFor="domains">Dominios de correo permitidos</label>
               <input id="domains" className="input" placeholder="organizacion.cl, alumnos.organizacion.cl" value={form.allowedEmailDomains} onChange={(e) => setForm({ ...form, allowedEmailDomains: e.target.value })} />

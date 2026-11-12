@@ -46,7 +46,7 @@ const current = {
   logoUrl: null,
   brandColor: null,
   registrationForm: "BASIC",
-  selfRegistration: true,
+  joinPolicy: "OPEN",
   allowedEmailDomains: [],
 };
 

@@ -29,10 +29,29 @@ enum RegistrationForm {
   ACADEMIC
 }
 
+enum JoinPolicy {
+  OPEN
+  APPROVAL
+  INVITE_ONLY
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
+enum VehicleStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum PlanFeature {
   INFRACTIONS
   REPORTS
   QR
+  CREDENTIALS
 }
 
 enum AuditAction {
@@ -110,7 +129,9 @@ model Organization {
   planId              String
   plan                Plan               @relation(fields: [planId], references: [id])
   registrationForm    RegistrationForm   @default(BASIC)
-  selfRegistration    Boolean            @default(true)
+  joinPolicy          JoinPolicy         @default(APPROVAL)
+  vehicleApproval     Boolean            @default(true)
+  credentialsEnabled  Boolean            @default(false)
   allowedEmailDomains String[]           @default([])
   defaultBlockId      String?            @unique
   defaultBlock        ParkingBlock?      @relation("DefaultBlock", fields: [defaultBlockId], references: [id], onDelete: Restrict)
@@ -118,6 +139,7 @@ model Organization {
   updatedAt           DateTime           @updatedAt
 
   memberships   Membership[]
+  invitations   Invitation[]
   vehicles      Vehicle[]
   blocks        ParkingBlock[] @relation("OrganizationBlocks")
   events        ParkingEvent[]
@@ -151,6 +173,7 @@ model User {
   resolvedInfractions Infraction[]         @relation("ResolvedInfractions")
   resetTokens         PasswordResetToken[]
   createdEvents       ParkingEvent[]       @relation("CreatedEvents")
+  sentInvitations     Invitation[]
   auditLogs           AuditLog[]
 }
 
@@ -167,40 +190,58 @@ model PasswordResetToken {
 }
 
 model Membership {
-  id                 String       @id @default(cuid())
+  id                 String           @id @default(cuid())
   userId             String
-  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   organizationId     String
-  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   role               Role
-  active             Boolean      @default(true)
+  status             MembershipStatus @default(ACTIVE)
+  active             Boolean          @default(true)
   credentialId       String?
   userType           UserType?
   position           String?
   department         String?
   academicDepartment String?
   career             String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   @@unique([userId, organizationId])
   @@unique([organizationId, credentialId])
   @@index([organizationId, role])
+  @@index([organizationId, status])
+}
+
+model Invitation {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           Role         @default(USER)
+  tokenHash      String       @unique
+  invitedById    String?
+  invitedBy      User?        @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, email])
 }
 
 model Vehicle {
-  id             String       @id @default(cuid())
+  id             String        @id @default(cuid())
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization  @relation(fields: [organizationId], references: [id])
   plate          String
   make           String?
   model          String?
   color          String?
-  authorized     Boolean      @default(true)
+  authorized     Boolean       @default(true)
+  status         VehicleStatus @default(APPROVED)
   ownerId        String
-  owner          User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  owner          User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   accessLogs     AccessLog[]
   infractions    Infraction[]
@@ -209,6 +250,7 @@ model Vehicle {
 
   @@unique([organizationId, plate])
   @@index([ownerId])
+  @@index([organizationId, status])
 }
 
 model ParkingBlock {

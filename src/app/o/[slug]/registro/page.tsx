@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { OrgNotice, OrgShell } from "@/components/OrgShell";
-import { getActor, homePath } from "@/lib/auth";
+import { getAccount } from "@/lib/auth";
+import { usesCredentials } from "@/lib/join";
 import { publicOrganization } from "@/lib/public-org";
 import { RegisterForm } from "./RegisterForm";
 
@@ -15,19 +16,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function OrganizationRegisterPage({ params }: Props) {
   const org = await publicOrganization((await params).slug);
   if (!org) notFound();
-  const actor = await getActor();
-  if (actor) redirect(homePath(actor.role));
+  if (await getAccount()) redirect(`/cuenta/unirse/${org.slug}`);
+  const approval = org.joinPolicy === "APPROVAL";
 
   return (
     <OrgShell org={org} back={`/o/${org.slug}`}>
-      <h1 style={{ fontSize: 22, marginBottom: 4 }}>Crear mi cuenta</h1>
+      <h1 style={{ fontSize: 22, marginBottom: 4 }}>{approval ? "Solicitar ingreso" : "Crear mi cuenta"}</h1>
       {org.status !== "ACTIVE" ? (
         <OrgNotice tone="warn">
           La cuenta de esta organización está suspendida. Si tienes dudas, contacta a su administración.
         </OrgNotice>
-      ) : !org.selfRegistration ? (
+      ) : org.joinPolicy === "INVITE_ONLY" ? (
         <OrgNotice>
-          {org.displayName} no tiene el registro abierto. Pide tu cuenta a su administración.
+          {org.displayName} solo acepta ingresos por invitación. Pide la tuya a su administración.
         </OrgNotice>
       ) : (
         <RegisterForm
@@ -35,6 +36,8 @@ export default async function OrganizationRegisterPage({ params }: Props) {
           organizationName={org.displayName}
           form={org.registrationForm}
           domains={org.allowedEmailDomains}
+          approval={approval}
+          credentials={usesCredentials(org)}
         />
       )}
     </OrgShell>

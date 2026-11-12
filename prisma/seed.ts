@@ -99,9 +99,9 @@ const PLANS: {
   maxVehicles: number | null;
   features: PlanFeature[];
 }[] = [
-  { code: "basico", name: "Básico", maxUsers: 100, maxGuards: 2, maxBlocks: 3, maxVehicles: 150, features: ["QR"] },
-  { code: "profesional", name: "Profesional", maxUsers: 1000, maxGuards: 10, maxBlocks: 10, maxVehicles: 1500, features: ["QR", "INFRACTIONS"] },
-  { code: "institucional", name: "Institucional", maxUsers: null, maxGuards: null, maxBlocks: null, maxVehicles: null, features: ["QR", "INFRACTIONS", "REPORTS"] },
+  { code: "gratis", name: "Gratis", maxUsers: null, maxGuards: 1, maxBlocks: 2, maxVehicles: 30, features: ["QR"] },
+  { code: "pro", name: "Pro", maxUsers: null, maxGuards: 10, maxBlocks: 10, maxVehicles: 500, features: ["QR", "INFRACTIONS"] },
+  { code: "organizacional", name: "Organizacional", maxUsers: null, maxGuards: null, maxBlocks: null, maxVehicles: null, features: ["QR", "INFRACTIONS", "REPORTS", "CREDENTIALS"] },
 ];
 
 const SUPER_ADMIN: UserDef = {
@@ -123,7 +123,7 @@ const USM: OrgDef = {
   displayName: "USM Sede Viña del Mar",
   logoUrl: "/escudo-usm.png",
   brandColor: "#004B85",
-  plan: "institucional",
+  plan: "organizacional",
   registrationForm: "ACADEMIC",
   allowedEmailDomains: ["usm.cl"],
   defaultBlock: { name: "No definido", capacity: 200, description: DEFAULT_BLOCK_DESCRIPTION },
@@ -224,7 +224,7 @@ const VALPARAISO: OrgDef = {
   displayName: "USM Campus Valparaíso",
   logoUrl: "/escudo-usm.png",
   brandColor: "#004B85",
-  plan: "profesional",
+  plan: "pro",
   registrationForm: "ACADEMIC",
   allowedEmailDomains: ["usm.cl"],
   defaultBlock: { name: "No definido", capacity: 80, description: DEFAULT_BLOCK_DESCRIPTION },
@@ -325,6 +325,7 @@ async function seedOrganization(def: OrgDef, planIds: Record<string, string>) {
     brandColor: def.brandColor,
     status: "ACTIVE" as const,
     planId: planIds[def.plan],
+    credentialsEnabled: def.plan === "organizacional",
     registrationForm: def.registrationForm,
     allowedEmailDomains: def.allowedEmailDomains,
   };

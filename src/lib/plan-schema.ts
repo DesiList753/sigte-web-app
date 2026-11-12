@@ -10,7 +10,7 @@ export const planSchema = z.object({
   maxGuards: limit,
   maxBlocks: limit,
   maxVehicles: limit,
-  features: z.array(z.enum(["QR", "INFRACTIONS", "REPORTS"])),
+  features: z.array(z.enum(["QR", "INFRACTIONS", "REPORTS", "CREDENTIALS"])),
 });
 
 export const planPatchSchema = planSchema.omit({ code: true }).partial();

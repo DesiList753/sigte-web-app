@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 
 const organizationSelect = {
   status: true,
+  credentialsEnabled: true,
   slug: true,
   name: true,
   displayName: true,
@@ -58,4 +59,13 @@ export async function loadActor(id: string, organizationId: string | null) {
   };
 }
 
+export function loadAccount(id: string) {
+  return prisma.user.findUnique({
+    where: { id },
+    select: { id: true, email: true, name: true, rut: true, platformAdmin: true },
+  });
+}
+
 export type Actor = NonNullable<Awaited<ReturnType<typeof loadActor>>>;
+
+export type Account = NonNullable<Awaited<ReturnType<typeof loadAccount>>>;

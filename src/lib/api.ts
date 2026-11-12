@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ZodSchema } from "zod";
 import type { PlanFeature } from "@prisma/client";
+import type { Account } from "./actor";
 import {
   asTenant,
   getSessionFromRequest,
+  resolveAccount,
   resolveActor,
   type TenantRole,
   type TenantSession,
@@ -44,6 +46,10 @@ export function withTenant<T = Record<string, never>>(
   };
 }
 
+export function credentialsOff() {
+  return jsonError(403, "Tu organización no tiene activado el acceso con credencial", { code: "CREDENTIALS_OFF" });
+}
+
 export function planError(block: PlanBlock) {
   return jsonError(403, block.message, block.extra);
 }
@@ -58,6 +64,20 @@ export function withPlatform<T = Record<string, never>>(handler: PlatformHandler
       session: { sub: actor.id, email: actor.email, name: actor.name },
       params: resolvedParams,
     });
+  };
+}
+
+export type AccountHandler<T = unknown> = (
+  req: NextRequest,
+  ctx: { account: Account; params: T }
+) => Promise<Response> | Response;
+
+export function withAccount<T = Record<string, never>>(handler: AccountHandler<T>) {
+  return async (req: NextRequest, ctx: { params: Promise<T> }) => {
+    const account = await resolveAccount(await getSessionFromRequest(req));
+    if (!account) return jsonError(401, "No autenticado");
+    const resolvedParams = ctx?.params ? await ctx.params : ({} as T);
+    return handler(req, { account, params: resolvedParams });
   };
 }
 

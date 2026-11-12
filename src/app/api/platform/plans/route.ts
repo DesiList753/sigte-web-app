@@ -6,7 +6,7 @@ import { planSchema } from "@/lib/plan-schema";
 
 export const GET = withPlatform(async () => {
   const plans = await prisma.plan.findMany({
-    orderBy: { maxUsers: { sort: "asc", nulls: "last" } },
+    orderBy: { maxVehicles: { sort: "asc", nulls: "last" } },
     include: { _count: { select: { organizations: true } } },
   });
   return NextResponse.json({ plans });

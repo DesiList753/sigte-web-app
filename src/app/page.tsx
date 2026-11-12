@@ -31,16 +31,17 @@ const STEPS = [
 ];
 
 const LIMITS = [
-  { key: "maxUsers", one: "usuario", many: "usuarios" },
+  { key: "maxVehicles", one: "vehículo", many: "vehículos" },
   { key: "maxGuards", one: "guardia", many: "guardias" },
   { key: "maxBlocks", one: "bloque de estacionamiento", many: "bloques de estacionamiento" },
-  { key: "maxVehicles", one: "vehículo", many: "vehículos" },
+  { key: "maxUsers", one: "usuario", many: "usuarios" },
 ] as const;
 
 const PLAN_FEATURES: { key: PlanFeature; label: string }[] = [
   { key: "QR", label: "Acceso con QR" },
   { key: "INFRACTIONS", label: "Infracciones" },
   { key: "REPORTS", label: "Reportes y exportación" },
+  { key: "CREDENTIALS", label: "Acceso con credencial" },
 ];
 
 function limitText(max: number | null, one: string, many: string) {
@@ -53,7 +54,7 @@ export default async function Home() {
   if (actor) redirect(homePath(actor.role));
 
   const plans = await prisma.plan.findMany({
-    orderBy: { maxUsers: { sort: "asc", nulls: "last" } },
+    orderBy: { maxVehicles: { sort: "asc", nulls: "last" } },
     select: {
       code: true,
       name: true,
@@ -77,8 +78,9 @@ export default async function Home() {
             <a href="#funciones" className={s.navLink}>Funciones</a>
             <a href="#planes" className={s.navLink}>Planes</a>
             <Link href="/login">Iniciar sesión</Link>
+            <Link href="/register">Crear mi cuenta</Link>
             <Link href="/crear-organizacion" className={`btn primary ${s.topCta}`}>
-              Crear cuenta
+              Registrar organización
             </Link>
           </nav>
         </div>
@@ -98,8 +100,8 @@ export default async function Home() {
             <Link href="/crear-organizacion" className="btn primary lg">
               Crear cuenta para mi organización <I name="arrowRight" size={18} />
             </Link>
-            <Link href="/login" className="btn secondary lg">
-              Ya tengo cuenta
+            <Link href="/register" className="btn secondary lg">
+              Crear mi cuenta de usuario
             </Link>
           </div>
           {startPlan && (
@@ -182,14 +184,14 @@ export default async function Home() {
             <div className={s.band}>
               <div>
                 <h2>¿Tu organización ya usa S.I.G.T.E.?</h2>
-                <p>Entra con tu cuenta, o crea tu cuenta de conductor con el código de tu organización.</p>
+                <p>Entra con tu cuenta, o crea una y únete a los estacionamientos de tu organización.</p>
               </div>
               <div className={s.bandActions}>
                 <Link href="/login" className="btn secondary">
                   <I name="login" size={17} /> Iniciar sesión
                 </Link>
                 <Link href="/register" className="btn ghost">
-                  <I name="search" size={17} /> Buscar mi organización
+                  <I name="userCheck" size={17} /> Crear mi cuenta
                 </Link>
               </div>
             </div>

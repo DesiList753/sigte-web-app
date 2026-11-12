@@ -43,7 +43,18 @@ describe("withTenant", () => {
       organizationId: ORG_A,
       organization: ORG_BRAND,
       plan: FULL_PLAN,
+      credentials: true,
     });
+  });
+
+  it("la sesión solo usa credenciales si el plan las incluye y la organización las activó", async () => {
+    const off = await withTenant(handler)(await tenantRequest("/x", { role: "ADMIN", credentials: false }), params({}));
+    expect((await off.json()).session.credentials).toBe(false);
+    const noPlan = await withTenant(handler)(
+      await tenantRequest("/x", { role: "ADMIN", plan: { features: ["QR"] } }),
+      params({})
+    );
+    expect((await noPlan.json()).session.credentials).toBe(false);
   });
 
   it("bloquea un endpoint cuya función no está en el plan", async () => {
@@ -78,7 +89,7 @@ describe("withTenant", () => {
       role: "USER",
       active: true,
       organizationId: ORG_A,
-      organization: { status: "ACTIVE", ...ORG_BRAND, plan: FULL_PLAN },
+      organization: { status: "ACTIVE", credentialsEnabled: true, ...ORG_BRAND, plan: FULL_PLAN },
     });
     const res = await withTenant(handler)(req, params({}));
     expect(res.status).toBe(401);

@@ -30,7 +30,7 @@ export default async function OrganizationLoginPage({ params }: Props) {
         <Suspense fallback={<p className="muted" style={{ fontSize: 13 }}>Cargando…</p>}>
           <LoginForm
             organizationSlug={org.slug}
-            registerHref={org.selfRegistration ? `/o/${org.slug}/registro` : null}
+            registerHref={org.joinPolicy === "INVITE_ONLY" ? null : `/o/${org.slug}/registro`}
           />
         </Suspense>
       )}

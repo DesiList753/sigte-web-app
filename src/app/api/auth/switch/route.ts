@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getSessionFromRequest, homePath, resolveActor, setSessionCookie } from "@/lib/auth";
+import { getSessionFromRequest, homePath, resolveAccount, setSessionCookie } from "@/lib/auth";
 import { signToken } from "@/lib/jwt";
 import { jsonError, parseJson } from "@/lib/api";
 
 const schema = z.object({ organizationId: z.string().min(1) });
 
 export async function POST(req: NextRequest) {
-  const actor = await resolveActor(await getSessionFromRequest(req));
-  if (!actor || actor.role === "SUPER_ADMIN") return jsonError(401, "No autenticado");
+  const actor = await resolveAccount(await getSessionFromRequest(req));
+  if (!actor) return jsonError(401, "No autenticado");
 
   const parsed = await parseJson(req, schema);
   if (!parsed.ok) return parsed.response;
@@ -17,9 +17,9 @@ export async function POST(req: NextRequest) {
 
   const membership = await prisma.membership.findUnique({
     where: { userId_organizationId: { userId: actor.id, organizationId } },
-    select: { role: true, active: true, organization: { select: { status: true } } },
+    select: { role: true, active: true, status: true, organization: { select: { status: true } } },
   });
-  if (!membership?.active) return jsonError(404, "No perteneces a esa organización");
+  if (!membership?.active || membership.status !== "ACTIVE") return jsonError(404, "No perteneces a esa organización");
   if (membership.organization.status !== "ACTIVE") {
     return jsonError(403, "La cuenta de esa organización está suspendida", { code: "ORG_SUSPENDED" });
   }

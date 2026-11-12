@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
+import { credentialsOff, jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { auditData } from "@/lib/audit";
 import { memberByCredential } from "@/lib/members";
 import { limitBlock, limitKindFor } from "@/lib/plan";
@@ -13,7 +13,7 @@ export const GET = withTenant(
     const q = new URL(req.url).searchParams.get("q")?.trim();
     const organizationId = session.organizationId;
 
-    const where: Prisma.MembershipWhereInput = { organizationId };
+    const where: Prisma.MembershipWhereInput = { organizationId, status: "ACTIVE" };
     if (q) {
       where.OR = [
         { user: { name: { contains: q, mode: "insensitive" } } },
@@ -75,10 +75,11 @@ export const POST = withTenant(
     if (exists) {
       return jsonError(
         409,
-        "Ese correo ya tiene cuenta en S.I.G.T.E. Pídele que se una con el enlace de registro de tu organización."
+        "Ese correo ya tiene cuenta en S.I.G.T.E. Envíale una invitación desde Solicitudes."
       );
     }
 
+    if (credentialId && !session.credentials) return credentialsOff();
     if (credentialId && (await memberByCredential(organizationId, credentialId))) {
       return jsonError(409, "La credencial ya existe en tu organización");
     }

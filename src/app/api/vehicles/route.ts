@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { auditData } from "@/lib/audit";
+import { notifyAdmins } from "@/lib/join";
 import { ownerSelect, withFlatOwner } from "@/lib/members";
 import { limitBlock } from "@/lib/plan";
 
@@ -61,7 +62,7 @@ export const POST = withTenant(async (req, { session }) => {
   let ownerId = session.sub;
   if (session.role === "ADMIN" && data.ownerId) {
     const member = await prisma.membership.findUnique({
-      where: { userId_organizationId: { userId: data.ownerId, organizationId } },
+      where: { userId_organizationId: { userId: data.ownerId, organizationId }, status: "ACTIVE" },
       select: { userId: true },
     });
     if (!member) return jsonError(404, "Dueño no encontrado");
@@ -77,6 +78,15 @@ export const POST = withTenant(async (req, { session }) => {
   const limited = await limitBlock(organizationId, session.plan, "vehicles");
   if (limited) return planError(limited);
 
+  const settings =
+    session.role === "USER"
+      ? await prisma.organization.findUnique({ where: { id: organizationId }, select: { vehicleApproval: true } })
+      : null;
+  const pending = !!settings?.vehicleApproval;
+  const approval = pending
+    ? { status: "PENDING" as const, authorized: false }
+    : { authorized: session.role === "USER" ? undefined : data.authorized };
+
   const vehicle = await prisma.$transaction(async (tx) => {
     const created = await tx.vehicle.create({
       data: {
@@ -85,11 +95,24 @@ export const POST = withTenant(async (req, { session }) => {
         make: data.make,
         model: data.model,
         color: data.color,
-        authorized: session.role === "USER" ? undefined : data.authorized,
+        ...approval,
         ownerId,
       },
       include: { owner: { select: { id: true, name: true, email: true } } },
     });
+    if (pending) {
+      await notifyAdmins(tx, organizationId, {
+        title: "Nueva solicitud de vehículo",
+        message: `${session.name} pidió registrar el vehículo ${plate}. Revísala en Vehículos.`,
+      });
+    }
+    const max = session.plan.maxVehicles;
+    if (max !== null && (await tx.vehicle.count({ where: { organizationId } })) === Math.ceil(max * 0.8)) {
+      await notifyAdmins(tx, organizationId, {
+        title: "Quedan pocos cupos de vehículos",
+        message: `Tu organización ya usa el 80 % de los ${max} vehículos de su plan ${session.plan.name}. Contacta a VanillaSoft si necesitas más.`,
+      });
+    }
     await tx.auditLog.create({
       data: auditData({
         organizationId,
@@ -97,7 +120,7 @@ export const POST = withTenant(async (req, { session }) => {
         action: "CREATE",
         entity: "VEHICLE",
         entityId: created.id,
-        detail: { plate },
+        detail: pending ? { plate, request: "PENDING" } : { plate },
       }),
     });
     return created;

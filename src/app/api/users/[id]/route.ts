@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { jsonError, parseJson, planError, withTenant } from "@/lib/api";
+import { credentialsOff, jsonError, parseJson, planError, withTenant } from "@/lib/api";
 import { auditData } from "@/lib/audit";
 import { memberByCredential } from "@/lib/members";
 import { limitBlock, limitKindFor } from "@/lib/plan";
@@ -15,14 +15,14 @@ const patchSchema = z.object({
 
 function findMember(userId: string, organizationId: string) {
   return prisma.membership.findUnique({
-    where: { userId_organizationId: { userId, organizationId } },
+    where: { userId_organizationId: { userId, organizationId }, status: "ACTIVE" },
     select: { id: true, role: true, active: true, credentialId: true, user: { select: { email: true } } },
   });
 }
 
 async function otherActiveAdmins(organizationId: string, userId: string) {
   return prisma.membership.count({
-    where: { organizationId, role: "ADMIN", active: true, NOT: { userId } },
+    where: { organizationId, role: "ADMIN", active: true, status: "ACTIVE", NOT: { userId } },
   });
 }
 
@@ -32,6 +32,7 @@ export const PATCH = withTenant<{ id: string }>(
     if (!parsed.ok) return parsed.response;
     const { role, active, credentialId } = parsed.data;
     const organizationId = session.organizationId;
+    if (credentialId && !session.credentials) return credentialsOff();
 
     const target = await findMember(params.id, organizationId);
     if (!target) return jsonError(404, "Usuario no encontrado");

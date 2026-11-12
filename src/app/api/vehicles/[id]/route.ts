@@ -9,6 +9,7 @@ const updateSchema = z.object({
   model: z.string().optional(),
   color: z.string().optional(),
   authorized: z.boolean().optional(),
+  status: z.enum(["APPROVED", "REJECTED"]).optional(),
 });
 
 export const PATCH = withTenant<{ id: string }>(async (req, { session, params }) => {
@@ -26,9 +27,44 @@ export const PATCH = withTenant<{ id: string }>(async (req, { session, params })
   if (session.role === "USER" && parsed.data.authorized !== undefined)
     return jsonError(403, "Solo un guardia o administrador puede cambiar la autorización");
 
-  const updated = await prisma.vehicle.update({
-    where: { id: vehicle.id },
-    data: parsed.data,
+  const { status, ...fields } = parsed.data;
+  if (status === undefined) {
+    if (fields.authorized && vehicle.status !== "APPROVED") {
+      return jsonError(409, "La solicitud de este vehículo aún no ha sido aprobada");
+    }
+    const updated = await prisma.vehicle.update({ where: { id: vehicle.id }, data: fields });
+    return NextResponse.json({ vehicle: updated });
+  }
+
+  if (session.role !== "ADMIN") return jsonError(403, "Solo un administrador puede responder la solicitud");
+  const approved = status === "APPROVED";
+  const updated = await prisma.$transaction(async (tx) => {
+    const saved = await tx.vehicle.update({
+      where: { id: vehicle.id },
+      data: { ...fields, status, authorized: approved },
+    });
+    await tx.notification.create({
+      data: {
+        organizationId: session.organizationId,
+        userId: vehicle.ownerId,
+        kind: "SYSTEM",
+        title: approved ? "Vehículo aprobado" : "Vehículo rechazado",
+        message: approved
+          ? `Tu vehículo ${vehicle.plate} fue aprobado y ya puede ingresar.`
+          : `La solicitud de tu vehículo ${vehicle.plate} fue rechazada. Consulta a la administración.`,
+      },
+    });
+    await tx.auditLog.create({
+      data: auditData({
+        organizationId: session.organizationId,
+        actor: session,
+        action: "UPDATE",
+        entity: "VEHICLE",
+        entityId: vehicle.id,
+        detail: { plate: vehicle.plate, request: approved ? "ACCEPTED" : "REJECTED" },
+      }),
+    });
+    return saved;
   });
   return NextResponse.json({ vehicle: updated });
 });
