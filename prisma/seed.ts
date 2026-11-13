@@ -113,8 +113,8 @@ const SUPER_ADMIN: UserDef = {
 
 const DEFAULT_BLOCK_DESCRIPTION = "Bloque por defecto — asignar luego";
 const INFO = "Depto. de Informática";
-const WELCOME = "Tu cuenta fue creada exitosamente. Puedes generar tu QR de acceso desde el panel.";
-const WELCOME_NEW = "Tu cuenta fue creada. Registra tu vehículo para obtener tu código QR de acceso.";
+const WELCOME = "Ya puedes ver tu QR de acceso en el panel.";
+const WELCOME_NEW = "Registra tu vehículo para obtener tu QR de acceso.";
 
 const USM: OrgDef = {
   id: "org_usm_vina",
@@ -171,33 +171,33 @@ const USM: OrgDef = {
     { plate: "HHII41", make: "Peugeot", model: "208", color: "Blanco", owner: "jose@usm.cl", authorized: true, block: "Estacionamiento 4" },
   ],
   infractions: [
-    { plate: "AABB12", guard: "guardia@usm.cl", type: "DOUBLE_PARKING", description: "Vehículo estacionado en doble fila frente al Estacionamiento 1, bloqueando salida", status: "OPEN", daysAgo: 0 },
-    { plate: "GGHH78", guard: "guardia2@usm.cl", type: "WRONG_BLOCK", description: "Vehículo estacionado en sector de funcionarios sin autorización", status: "ACKNOWLEDGED", daysAgo: 2 },
-    { plate: "FFGG19", guard: "guardia@usm.cl", type: "UNAUTHORIZED_ENTRY", description: "Intento de ingreso con patente no registrada en el sistema", status: "RESOLVED", daysAgo: 5 },
-    { plate: "QQRR65", guard: "guardia@usm.cl", type: "BLOCKING_ACCESS", description: "Vehículo bloqueando rampa de acceso peatonal en Estacionamiento 2", status: "OPEN", daysAgo: 1 },
-    { plate: "CCDD34", guard: "guardia2@usm.cl", type: "EXPIRED_PERMIT", description: "Permiso vehicular vencido desde hace 15 días — notificar al propietario", status: "ACKNOWLEDGED", daysAgo: 4 },
-    { plate: "WWXX31", guard: "guardia@usm.cl", type: "SPEEDING", description: "Vehículo circulando a velocidad excesiva en zona de peatones frente a biblioteca", status: "RESOLVED", daysAgo: 8 },
-    { plate: "NNPP43", guard: "guardia2@usm.cl", type: "WRONG_BLOCK", description: "Vehículo ocupando lugar reservado sin credencial de acceso correspondiente", status: "DISMISSED", daysAgo: 12 },
-    { plate: "EEFF56", guard: "guardia@usm.cl", type: "OTHER", description: "Vehículo con alarma activada por más de 20 minutos — se notificó al dueño", status: "RESOLVED", daysAgo: 15 },
+    { plate: "AABB12", guard: "guardia@usm.cl", type: "DOUBLE_PARKING", description: "En doble fila frente al Estacionamiento 1, no dejaba salir a otro auto", status: "OPEN", daysAgo: 0 },
+    { plate: "GGHH78", guard: "guardia2@usm.cl", type: "WRONG_BLOCK", description: "Estacionado en el 3, tiene asignado el Estacionamiento 2", status: "ACKNOWLEDGED", daysAgo: 2 },
+    { plate: "FFGG19", guard: "guardia@usm.cl", type: "UNAUTHORIZED_ENTRY", description: "Intentó entrar con una patente que no está registrada", status: "RESOLVED", daysAgo: 5 },
+    { plate: "QQRR65", guard: "guardia@usm.cl", type: "BLOCKING_ACCESS", description: "Tapando la rampa peatonal del Estacionamiento 2", status: "OPEN", daysAgo: 1 },
+    { plate: "CCDD34", guard: "guardia2@usm.cl", type: "EXPIRED_PERMIT", description: "Permiso vencido hace 15 días, se avisó al dueño", status: "ACKNOWLEDGED", daysAgo: 4 },
+    { plate: "WWXX31", guard: "guardia@usm.cl", type: "SPEEDING", description: "Pasó rápido por el paso peatonal frente a biblioteca, se le llamó la atención", status: "RESOLVED", daysAgo: 8 },
+    { plate: "NNPP43", guard: "guardia2@usm.cl", type: "WRONG_BLOCK", description: "Ocupaba un lugar reservado. Mostró su credencial, se descarta", status: "DISMISSED", daysAgo: 12 },
+    { plate: "EEFF56", guard: "guardia@usm.cl", type: "OTHER", description: "Alarma sonando más de 20 min, se ubicó al dueño por teléfono", status: "RESOLVED", daysAgo: 15 },
   ],
   notifications: [
-    { email: "user@usm.cl", title: "Infracción registrada", message: "Se registró una infracción (Doble fila) para tu vehículo AABB12. Por favor comunícate con Seguridad.", read: false, at: [3, 9, 15] },
-    { email: "user@usm.cl", title: "Bienvenido a S.I.G.T.E.", message: WELCOME, read: true, at: [28, 8, 30] },
-    { email: "pedro@usm.cl", title: "Bienvenido a S.I.G.T.E.", message: WELCOME, read: true, at: [25, 9, 10] },
-    { email: "jose@usm.cl", title: "Bienvenido a S.I.G.T.E.", message: WELCOME, read: true, at: [23, 14, 45] },
-    { email: "nicolas@usm.cl", title: "Bienvenido a S.I.G.T.E.", message: WELCOME_NEW, read: false, at: [6, 11, 20] },
-    { email: "ismael@usm.cl", title: "Bienvenido a S.I.G.T.E.", message: WELCOME_NEW, read: false, at: [5, 16, 5] },
-    { email: "andrea@usm.cl", title: "Bienvenido a S.I.G.T.E.", message: WELCOME, read: true, at: [19, 10, 0] },
-    { email: "diego@usm.cl", title: "Vehículo no autorizado", message: "Se detectó un intento de ingreso con tu vehículo FFGG19 que no tiene autorización activa.", read: false, at: [2, 18, 40] },
-    { email: "jose@usm.cl", title: "Infracción — Bloque incorrecto", message: "Tu vehículo GGHH78 fue registrado en sector no autorizado. Estado: Notificado.", read: false, at: [4, 13, 25] },
-    { email: "user@usm.cl", title: "Permiso próximo a vencer", message: "El permiso de tu vehículo CCDD34 está próximo a vencer. Renuévalo en Administración.", read: false, at: [7, 10, 5] },
-    { email: "user@usm.cl", kind: "EVENT", title: "Exposición Tecnológica — Sector Superior", message: "Estacionamiento 5 permanece cerrado al ingreso por montaje de feria estudiantil. Prefiere Estacionamientos 1 y 2.", read: false, at: [0, 8, 30] },
-    { email: "guardia@usm.cl", kind: "EVENT", title: "Exposición Tecnológica — Sector Superior", message: "Estacionamiento 5 cerrado al ingreso hoy por montaje de stands.", read: false, at: [0, 8, 30] },
+    { email: "user@usm.cl", title: "Infracción registrada", message: "Tu vehículo AABB12 tiene una infracción por doble fila. Acércate a Seguridad.", read: false, at: [3, 9, 15] },
+    { email: "user@usm.cl", title: "Cuenta creada", message: WELCOME, read: true, at: [28, 8, 30] },
+    { email: "pedro@usm.cl", title: "Cuenta creada", message: WELCOME, read: true, at: [25, 9, 10] },
+    { email: "jose@usm.cl", title: "Cuenta creada", message: WELCOME, read: true, at: [23, 14, 45] },
+    { email: "nicolas@usm.cl", title: "Cuenta creada", message: WELCOME_NEW, read: false, at: [6, 11, 20] },
+    { email: "ismael@usm.cl", title: "Cuenta creada", message: WELCOME_NEW, read: false, at: [5, 16, 5] },
+    { email: "andrea@usm.cl", title: "Cuenta creada", message: WELCOME, read: true, at: [19, 10, 0] },
+    { email: "diego@usm.cl", title: "Vehículo no autorizado", message: "Tu vehículo FFGG19 intentó ingresar y no tiene autorización.", read: false, at: [2, 18, 40] },
+    { email: "jose@usm.cl", title: "Infracción registrada", message: "Tu vehículo GGHH78 tiene una infracción por bloque incorrecto.", read: false, at: [4, 13, 25] },
+    { email: "user@usm.cl", title: "Permiso por vencer", message: "El permiso del vehículo CCDD34 vence pronto. Renuévalo en Administración.", read: false, at: [7, 10, 5] },
+    { email: "user@usm.cl", kind: "EVENT", title: "Exposición tecnológica", message: "El Estacionamiento 5 está cerrado por el montaje de la feria. Usa el 1 o el 2.", read: false, at: [0, 8, 30] },
+    { email: "guardia@usm.cl", kind: "EVENT", title: "Exposición tecnológica", message: "Estacionamiento 5 cerrado hoy por el montaje de stands.", read: false, at: [0, 8, 30] },
   ],
   events: [
     {
-      title: "Exposición Tecnológica — Sector Superior",
-      description: "Estacionamiento 5 reservado para montaje y stands de exposición estudiantil. Favor utilizar Estacionamientos 1, 2 o 4.",
+      title: "Exposición tecnológica",
+      description: "El Estacionamiento 5 queda para el montaje y los stands. Usa el 1, 2 o 4.",
       kind: "EVENT",
       blocks: ["Estacionamiento 5"],
       disableEntry: true,
@@ -206,7 +206,7 @@ const USM: OrgDef = {
     },
     {
       title: "Feria de Innovación en Estacionamientos 3 y 4",
-      description: "Cierre programado de ingreso durante la jornada de exposición de proyectos.",
+      description: "Sin ingreso de vehículos durante la exposición de proyectos.",
       kind: "EVENT",
       blocks: ["Estacionamiento 3", "Estacionamiento 4"],
       disableEntry: true,
@@ -247,12 +247,12 @@ const VALPARAISO: OrgDef = {
     { plate: "XXYY44", make: "Chevrolet", model: "Spark", color: "Rojo", owner: "alumno.valparaiso@sansano.usm.cl", authorized: false, block: null },
   ],
   infractions: [
-    { plate: "TTUU22", guard: "guardia.valparaiso@usm.cl", type: "DOUBLE_PARKING", description: "Vehículo en doble fila frente al acceso principal", status: "OPEN", daysAgo: 1 },
-    { plate: "XXYY44", guard: "guardia.valparaiso@usm.cl", type: "UNAUTHORIZED_ENTRY", description: "Intento de ingreso con un vehículo sin autorización", status: "RESOLVED", daysAgo: 3 },
+    { plate: "TTUU22", guard: "guardia.valparaiso@usm.cl", type: "DOUBLE_PARKING", description: "Doble fila en el acceso principal, el dueño no estaba", status: "OPEN", daysAgo: 1 },
+    { plate: "XXYY44", guard: "guardia.valparaiso@usm.cl", type: "UNAUTHORIZED_ENTRY", description: "Quiso entrar con un auto sin autorización", status: "RESOLVED", daysAgo: 3 },
   ],
   notifications: [
-    { email: "alumna.valparaiso@sansano.usm.cl", title: "Bienvenido a S.I.G.T.E.", message: WELCOME, read: true, at: [10, 9, 0] },
-    { email: "alumno.valparaiso@sansano.usm.cl", title: "Bienvenido a S.I.G.T.E.", message: WELCOME_NEW, read: false, at: [2, 11, 30] },
+    { email: "alumna.valparaiso@sansano.usm.cl", title: "Cuenta creada", message: WELCOME, read: true, at: [10, 9, 0] },
+    { email: "alumno.valparaiso@sansano.usm.cl", title: "Cuenta creada", message: WELCOME_NEW, read: false, at: [2, 11, 30] },
   ],
   activityDays: 14,
 };
@@ -417,7 +417,7 @@ async function seedOrganization(def: OrgDef, planIds: Record<string, string>) {
   for (const v of vehicles) {
     if (!v.authorized) {
       for (let i = 0; i < 12; i++) {
-        log(v, "IN", ago(Math.floor(Math.random() * 14) + 1, pick([8, 9, 10, 14, 15, 16]), pick([0, 15, 30, 45])), pick(["PLATE", "MANUAL"] as const), false, "Vehículo no autorizado — acceso denegado");
+        log(v, "IN", ago(Math.floor(Math.random() * 14) + 1, pick([8, 9, 10, 14, 15, 16]), pick([0, 15, 30, 45])), pick(["PLATE", "MANUAL"] as const), false, "Vehículo no autorizado, no ingresó");
       }
       continue;
     }

@@ -14,3 +14,5 @@ prisma/dev.db-journal
 .env*.local
 .playwright-mcp
 tsconfig.tsbuildinfo
+
+demo-activity-*.json
