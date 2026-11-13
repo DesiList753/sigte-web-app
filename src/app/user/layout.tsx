@@ -7,11 +7,11 @@ import { organizationOptions } from "@/lib/members";
 
 const tabs: (PortalTab & { feature?: PlanFeature })[] = [
   { href: "/user", label: "Inicio", icon: "home" },
-  { href: "/user/vehicles", label: "Mis vehículos", icon: "car" },
-  { href: "/user/qr", label: "QR de acceso", icon: "qr", feature: "QR" },
-  { href: "/user/access", label: "Mis accesos", icon: "history" },
+  { href: "/user/vehicles", label: "Mis vehículos", shortLabel: "Vehículos", icon: "car" },
+  { href: "/user/qr", label: "QR de acceso", shortLabel: "QR", icon: "qr", feature: "QR" },
+  { href: "/user/access", label: "Mis accesos", shortLabel: "Accesos", icon: "history" },
   { href: "/user/infractions", label: "Infracciones", icon: "file", feature: "INFRACTIONS" },
-  { href: "/user/notifications", label: "Notificaciones", icon: "bell" },
+  { href: "/user/notifications", label: "Notificaciones", shortLabel: "Avisos", icon: "bell" },
 ];
 
 export default async function UserLayout({ children }: { children: React.ReactNode }) {

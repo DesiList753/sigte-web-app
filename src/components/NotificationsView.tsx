@@ -120,7 +120,7 @@ export function NotificationsView({ padded }: { padded?: boolean }) {
 
   return (
     <div style={{ display: "grid", gap: 16, padding: padded ? 24 : 0 }}>
-      <header className="row between" style={{ alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+      <header className="row between notifications-head" style={{ alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Notificaciones</h1>
           <p className="muted" style={{ fontSize: 13 }}>
@@ -134,7 +134,7 @@ export function NotificationsView({ padded }: { padded?: boolean }) {
         </button>
       </header>
 
-      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+      <div className="row notifications-filters" style={{ gap: 8, flexWrap: "wrap" }}>
         <button
           type="button"
           className={"btn " + (filter === "ALL" ? "primary" : "ghost")}
@@ -165,6 +165,7 @@ export function NotificationsView({ padded }: { padded?: boolean }) {
           return (
             <Card
               key={n.id}
+              className="notification-card"
               style={
                 n.read
                   ? { opacity: 0.78 }

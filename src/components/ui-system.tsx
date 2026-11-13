@@ -101,15 +101,17 @@ export function Card({
   children,
   style,
   pad,
+  className,
 }: {
   title?: ReactNode;
   action?: ReactNode;
   children: ReactNode;
   style?: CSSProperties;
   pad?: "sm";
+  className?: string;
 }) {
   return (
-    <div className={"card" + (pad === "sm" ? " pad-sm" : "")} style={style}>
+    <div className={"card" + (pad === "sm" ? " pad-sm" : "") + (className ? " " + className : "")} style={style}>
       {(title || action) && (
         <div className="card-head">
           <div className="card-title">{title}</div>

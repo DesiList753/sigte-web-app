@@ -92,6 +92,7 @@ export default function UserQR() {
 
             {qr && (
               <div
+                className="qr-box"
                 style={{
                   border: "1px solid var(--line)",
                   borderRadius: 12,
