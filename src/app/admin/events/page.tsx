@@ -136,16 +136,20 @@ export default function AdminEventsPage() {
     return () => clearTimeout(t);
   }, [load]);
 
-  function openCreate(presetKind: EventKind = "EVENT") {
+  function applyKind(next: EventKind) {
+    setKind(next);
+    setDisableEntry(next !== "NOTICE");
+    setScheduleMode(next === "EVENT" ? "SCHEDULED" : "NOW");
+  }
+
+  function openCreate() {
     const now = new Date();
     const inFourHours = new Date(now.getTime() + 4 * 3600_000);
     setEditing(null);
-    setKind(presetKind);
+    applyKind("EVENT");
     setTitle("");
     setDescription("");
     setSelectedBlockIds([]);
-    setDisableEntry(presetKind !== "NOTICE");
-    setScheduleMode(presetKind === "EVENT" ? "SCHEDULED" : "NOW");
     setStartsAtLocal(toLocalDatetimeInput(now));
     setEndsAtLocal(toLocalDatetimeInput(inFourHours));
     setShowBanner(true);
@@ -362,29 +366,9 @@ export default function AdminEventsPage() {
           </p>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            className="btn danger"
-            onClick={() => openCreate("EMERGENCY")}
-          >
-            <I name="shieldAlert" size={16} />
-            Declarar urgencia
-          </button>
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={() => openCreate("NOTICE")}
-          >
-            <I name="megaphone" size={16} />
-            Enviar aviso
-          </button>
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() => openCreate("EVENT")}
-          >
+          <button type="button" className="btn primary" onClick={openCreate}>
             <I name="plus" size={16} />
-            Nuevo evento
+            Nuevo evento o aviso
           </button>
         </div>
       </div>
@@ -585,16 +569,7 @@ export default function AdminEventsPage() {
                     <button
                       key={k.id}
                       type="button"
-                      onClick={() => {
-                        setKind(k.id);
-                        if (!editing) {
-                          if (k.id === "NOTICE") setDisableEntry(false);
-                          if (k.id === "EMERGENCY") {
-                            setDisableEntry(true);
-                            setScheduleMode("NOW");
-                          }
-                        }
-                      }}
+                      onClick={() => (editing ? setKind(k.id) : applyKind(k.id))}
                       style={{
                         textAlign: "left",
                         padding: "10px 12px",
@@ -631,7 +606,7 @@ export default function AdminEventsPage() {
                 maxLength={120}
                 placeholder={
                   kind === "EMERGENCY"
-                    ? "Ej: Urgencia — Cierre temporal Estacionamiento 1"
+                    ? "Ej: Cierre temporal del Estacionamiento 1"
                     : kind === "EVENT"
                     ? "Ej: Feria de Exposición en Estacionamientos 3 y 4"
                     : "Ej: Aviso de operación en estacionamientos"
