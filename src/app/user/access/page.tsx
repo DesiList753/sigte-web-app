@@ -39,8 +39,8 @@ export default function UserAccess() {
         <p className="muted">Historial de ingresos y salidas de tus vehículos</p>
       </header>
 
-      <Card>
-        <table className="table">
+      <Card className="user-access-card">
+        <table className="table responsive-table">
           <thead>
             <tr>
               <th>Fecha</th>
@@ -55,24 +55,24 @@ export default function UserAccess() {
           <tbody>
             {logs.map((l) => (
               <tr key={l.id}>
-                <td className="mono muted" style={{ fontSize: 12 }}>
+                <td className="mono muted" style={{ fontSize: 12 }} data-label="Fecha">
                   {formatDate(l.timestamp)}
                 </td>
-                <td>
+                <td data-label="Patente">
                   <Plate size="sm">{l.vehicle.plate}</Plate>
                 </td>
-                <td>
+                <td data-label="Método">
                   <span className="row" style={{ gap: 6, alignItems: "center" }}>
                     <I name={methodIcon[l.method]} size={14} />
                     <span className="mono" style={{ fontSize: 12 }}>{l.method}</span>
                   </span>
                 </td>
-                <td>
+                <td data-label="Dirección">
                   <DirTag direccion={l.direction === "IN" ? "in" : "out"} />
                 </td>
-                <td className="muted">{l.block?.name ?? "—"}</td>
-                <td className="muted">{l.guard?.name ?? "—"}</td>
-                <td>
+                <td className="muted" data-label="Bloque">{l.block?.name ?? "—"}</td>
+                <td className="muted" data-label="Guardia">{l.guard?.name ?? "—"}</td>
+                <td data-label="Estado">
                   <span style={{ color: l.authorized ? "var(--ok-600)" : "var(--no-600)", fontWeight: 600 }}>
                     {l.authorized ? "Autorizado" : "Rechazado"}
                   </span>

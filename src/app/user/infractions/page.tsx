@@ -79,9 +79,9 @@ export default function UserInfractions() {
 
       <div style={{ display: "grid", gap: 12 }}>
         {items.map((i) => (
-          <Card key={i.id}>
-            <div className="row between" style={{ alignItems: "flex-start", gap: 12 }}>
-              <div className="row" style={{ alignItems: "flex-start", gap: 12 }}>
+          <Card key={i.id} className="user-infraction-card">
+            <div className="row between user-infraction-head" style={{ alignItems: "flex-start", gap: 12 }}>
+              <div className="row" style={{ alignItems: "flex-start", gap: 12, minWidth: 0 }}>
                 <span
                   style={{
                     width: 40,
@@ -96,8 +96,8 @@ export default function UserInfractions() {
                 >
                   <I name="shieldAlert" size={20} />
                 </span>
-                <div>
-                  <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                     <Plate size="sm">{i.vehicle.plate}</Plate>
                     <span className="muted">·</span>
                     <strong>{INFRACTION_TYPE_LABEL[i.type] ?? i.type}</strong>
@@ -113,7 +113,7 @@ export default function UserInfractions() {
               <Badge kind={STATUS_KIND[i.status]}>{STATUS_LABEL[i.status]}</Badge>
             </div>
             {i.status === "OPEN" && (
-              <div style={{ marginTop: 12 }}>
+              <div className="user-infraction-action" style={{ marginTop: 12 }}>
                 <button
                   className="btn primary sm"
                   onClick={() => acknowledge(i.id)}

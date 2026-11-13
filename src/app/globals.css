@@ -337,11 +337,15 @@ code,.mono{font-family:var(--ff-mono)}
 .panel-shell{height:100vh;height:100dvh}
 .portal-shell{min-height:100vh;min-height:100dvh}
 .panel-title{min-width:0;flex:0 1 auto}
-.panel-org-switcher,.portal-org-switcher{min-width:0}
+.panel-org-switcher,.portal-org-switcher{min-width:0;flex:none}
 .panel-org-switcher .select,.portal-org-switcher .select{max-width:100%}
 .settings-preview{grid-template-columns:minmax(0,190px) minmax(0,1fr)}
 .charts-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;margin-top:20px}
 .metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.portal-header-spacer{flex:1;min-width:0}
+.portal-tab-short{display:none}
+.portal-tab-text{display:inline}
+.portal-actions{flex:none}
 
 @media(max-width:1024px){
   .metric .val{font-size:34px}
@@ -374,15 +378,67 @@ code,.mono{font-family:var(--ff-mono)}
   .panel-user-meta{display:none}
   .panel-user{padding-left:0!important;border-left:none!important}
   .panel-org-switcher{max-width:120px}
-  .portal-header-in{padding:0 14px!important;gap:8px!important;height:56px!important}
+  .portal-header-in{
+    padding-left:max(14px,env(safe-area-inset-left))!important;
+    padding-right:max(14px,env(safe-area-inset-right))!important;
+    gap:8px!important;
+    height:56px!important;
+  }
   .portal-actions{gap:2px!important}
   .portal-avatar{display:none}
-  .portal-org-switcher{max-width:110px}
-  .portal-tabs{padding:0 14px!important}
-  .portal-main{padding:clamp(14px,4vw,24px)!important}
+  .portal-org-switcher{max-width:120px}
+  .portal-tab-text{display:none}
+  .portal-tab-short{display:inline}
+  .portal-tabs{padding:0 10px!important;gap:0!important;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .portal-tabs::-webkit-scrollbar{display:none}
+  .portal-tabs a{padding:10px 9px!important;font-size:12.5px!important;gap:5px!important}
+  .portal-main{
+    padding:clamp(14px,4vw,24px)!important;
+    padding-bottom:max(24px,env(safe-area-inset-bottom))!important;
+    min-width:0;
+    overflow-wrap:break-word;
+  }
+  .portal-main h1{font-size:22px!important;line-height:1.15}
   .card.pad-sm{padding:12px}
   .settings-preview{grid-template-columns:minmax(0,1fr)!important;min-height:0!important}
   .settings-preview > div:first-child{padding:12px 14px!important}
+
+  /* ---- Portal del conductor ---- */
+  .user-page-head{gap:12px}
+  .user-page-head > div{min-width:0}
+  .user-page-head .btn{width:100%}
+  .user-actions{grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+  .user-vehicle-grid{grid-template-columns:minmax(0,1fr)!important}
+  .user-infraction-card .user-infraction-head{gap:10px}
+  .user-infraction-action .btn{width:100%}
+  .qr-box{padding:16px!important}
+  .notifications-head > .btn{width:100%;border:1px solid var(--line);background:var(--surface)}
+  .notifications-filters{flex-wrap:nowrap!important;overflow-x:auto;gap:6px!important;padding-bottom:2px;scrollbar-width:none}
+  .notifications-filters::-webkit-scrollbar{display:none}
+  .notifications-filters .btn{flex:0 0 auto;padding:8px 12px!important;font-size:12.5px!important;white-space:nowrap}
+  .notifications-filters .btn.ghost{border:1px solid var(--line);background:var(--surface)}
+  .notification-card .btn{min-height:36px!important;padding:6px 12px!important;font-size:12.5px!important}
+
+  /* Tabla de accesos: de tabla a ficha legible en móvil */
+  .user-access-card{padding:0!important;overflow:visible!important}
+  .card.user-access-card:has(.table){overflow:visible!important}
+  .responsive-table{min-width:0!important;width:100%;font-size:13px!important}
+  .responsive-table thead{display:none}
+  .responsive-table tbody{display:block}
+  .responsive-table tr{display:block;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .responsive-table tr:last-child{border-bottom:none}
+  .responsive-table td{
+    display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+    padding:4px 0;border:none;text-align:right;min-width:0;
+  }
+  .responsive-table td::before{
+    content:attr(data-label);flex:none;text-align:left;
+    font-family:var(--ff-display);font-size:10.5px;font-weight:700;
+    letter-spacing:.05em;text-transform:uppercase;color:var(--ink-500);
+  }
+  .responsive-table td:not([data-label]){display:block;text-align:center;padding:24px 16px}
+  .responsive-table td:not([data-label])::before{content:none}
+  .responsive-table .plate{flex:none}
 }
 
 @media(max-width:520px){
@@ -392,4 +448,42 @@ code,.mono{font-family:var(--ff-mono)}
   .metric-grid{grid-template-columns:minmax(0,1fr)}
   .settings-preview > div:first-child{display:none!important}
   .modal-card{width:min(92vw,calc(100vw - 20px))!important}
+
+  .user-metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  .user-metrics .metric{padding:13px}
+  .user-metrics .metric .lbl{font-size:11.5px;gap:6px}
+  .user-metrics .metric .lbl svg{width:14px;height:14px}
+  .user-metrics .metric .val{font-size:26px;margin-top:6px}
+}
+
+@media(max-width:480px){
+  .modal-actions{gap:10px}
+  .modal-actions .btn{flex:1 1 auto}
+}
+
+@media(max-width:420px){
+  /* La cabecera deja el selector de organización en una segunda línea
+     para que la marca y los accesos no se compriman. */
+  .portal-header-in{
+    flex-wrap:wrap;
+    height:auto!important;
+    padding-top:8px!important;
+    padding-bottom:8px!important;
+    row-gap:6px;
+  }
+  .portal-header-spacer{display:none}
+  .portal-brand{flex:1 1 0;overflow:hidden}
+  .portal-brand .brand{max-width:100%}
+  .portal-actions{margin-left:auto}
+  .portal-org-switcher{order:5;flex:1 1 100%;max-width:none;display:flex;justify-content:flex-end}
+  .portal-org-switcher .select{height:32px!important;font-size:12px!important}
+  .portal-brand .crest{width:32px;height:32px}
+  .portal-brand .org-name{font-size:14px}
+  .portal-brand .tag{display:none}
+  .portal-actions .btn.icon{min-width:36px;padding:8px}
+  .portal-main h1{font-size:20px!important}
+  .user-metrics{gap:8px!important}
+  .user-metrics .metric{padding:12px}
+  .user-metrics .metric .val{font-size:24px}
+  .modal-actions .btn{flex:1 1 100%}
 }

@@ -58,7 +58,7 @@ export default function UserVehicles() {
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
-      <div className="row between" style={{ alignItems: "flex-start" }}>
+      <div className="row between user-page-head" style={{ alignItems: "flex-start" }}>
         <div>
           <h1 style={{ fontFamily: "var(--ff-display)", fontSize: 24 }}>Mis vehículos</h1>
           <p className="muted" style={{ fontSize: 13 }}>
@@ -71,7 +71,7 @@ export default function UserVehicles() {
         </button>
       </div>
 
-      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+      <div className="user-vehicle-grid" style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
         {items.map((v) => (
           <Card key={v.id}>
             <div className="row between" style={{ alignItems: "flex-start", gap: 10 }}>
@@ -141,7 +141,7 @@ export default function UserVehicles() {
                 onChange={(e) => setForm({ ...form, color: e.target.value })}
               />
             </div>
-            <div className="row between">
+            <div className="row between modal-actions">
               <button type="button" className="btn ghost" onClick={() => setOpen(false)}>
                 Cancelar
               </button>

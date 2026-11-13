@@ -26,7 +26,7 @@ export default function UserHome() {
       </div>
 
       {m && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+        <div className="user-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
           <Metric label="Mis vehículos" icon="car" value={m.vehicles} />
           <Metric label="Accesos hoy" icon="arrowRight" value={m.accessToday} />
           <Metric label="Infracciones" icon="shieldAlert" value={m.openInfractions} />
@@ -34,7 +34,7 @@ export default function UserHome() {
         </div>
       )}
 
-      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+      <div className="user-actions" style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
         <Link href="/user/qr" style={{ textDecoration: "none", color: "inherit" }}>
           <Card>
             <div className="row" style={{ gap: 12, alignItems: "center" }}>
@@ -51,7 +51,7 @@ export default function UserHome() {
               >
                 <I name="qr" size={20} />
               </span>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>Generar mi QR</div>
                 <div className="muted" style={{ fontSize: 13 }}>
                   Código válido por 5 minutos para presentar al guardia
@@ -77,7 +77,7 @@ export default function UserHome() {
               >
                 <I name="car" size={20} />
               </span>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>Mis vehículos</div>
                 <div className="muted" style={{ fontSize: 13 }}>Registra o edita tus patentes autorizadas</div>
               </div>

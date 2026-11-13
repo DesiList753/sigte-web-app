@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { I } from "@/components/Icon";
 import { ActiveEventsBanner } from "@/components/ActiveEventsBanner";
 import { CountPill, useUnreadNotifications } from "@/components/NotificationsBadge";
@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import type { OrganizationBrand } from "@/lib/auth";
 import { orgTheme } from "@/lib/theme";
 
-export interface PortalTab { href: string; label: string; icon: string; }
+export interface PortalTab { href: string; label: string; shortLabel?: string; icon: string; }
 
 export function PortalShell({ tabs, userName, brand, organizations, currentOrganizationId, children }: { tabs: PortalTab[]; userName: string; brand: OrganizationBrand; organizations: OrgOption[]; currentOrganizationId: string; children: ReactNode }) {
   const pathname = usePathname();
@@ -26,6 +26,32 @@ export function PortalShell({ tabs, userName, brand, organizations, currentOrgan
     .filter((t) => pathname === t.href || pathname.startsWith(t.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
   const theme = orgTheme(brand.brandColor);
+  const tabsRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = tabsRef.current;
+    const active = nav?.querySelector<HTMLElement>('[data-active="true"]');
+    if (!nav || !active) return;
+    const center = () => {
+      const navRect = nav.getBoundingClientRect();
+      const activeRect = active.getBoundingClientRect();
+      const left = nav.scrollLeft + activeRect.left - navRect.left - (nav.clientWidth - activeRect.width) / 2;
+      const max = nav.scrollWidth - nav.clientWidth;
+      nav.scrollTo({ left: Math.min(max, Math.max(0, left)), behavior: "smooth" });
+    };
+    center();
+    // Las fuentes cargan después del primer render y cambian el ancho de las pestañas.
+    let raf = 0;
+    const recenter = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(center);
+    };
+    document.fonts?.ready.then(recenter);
+    window.addEventListener("resize", recenter);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", recenter);
+    };
+  }, [activeHref, unreadCount]);
   return (
     <div className={`portal-shell ${theme.className ?? ""}`} style={{ background: "var(--bg)", ...theme.style }}>
       <header style={{ background: "var(--surface)", borderBottom: "1px solid var(--line)", position: "sticky", top: 0, zIndex: 20 }}>
@@ -33,11 +59,13 @@ export function PortalShell({ tabs, userName, brand, organizations, currentOrgan
           <Link href="/user" className="portal-brand" style={{ minWidth: 0 }}>
             <OrgBrand name={brand.displayName} legalName={brand.name} logoUrl={brand.logoUrl} />
           </Link>
-          <div style={{ flex: 1 }} />
-          <div className="portal-actions" style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <div className="portal-header-spacer" style={{ flex: 1 }} />
+          {organizations.length > 1 && (
             <div className="portal-org-switcher">
               <OrgSwitcher options={organizations} current={currentOrganizationId} />
             </div>
+          )}
+          <div className="portal-actions" style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <Link href="/user/notifications" className="btn ghost icon" title="Notificaciones" aria-label="Notificaciones" style={{ position: "relative" }}>
               <I name="bell" size={18} />
               {unreadCount > 0 && (
@@ -51,13 +79,15 @@ export function PortalShell({ tabs, userName, brand, organizations, currentOrgan
             <button className="btn ghost icon" onClick={logout} title="Cerrar sesión"><I name="logout" size={18} /></button>
           </div>
         </div>
-        <nav className="portal-tabs" style={{ maxWidth: 920, margin: "0 auto", padding: "0 24px", display: "flex", gap: 4, overflowX: "auto" }}>
+        <nav ref={tabsRef} className="portal-tabs" style={{ maxWidth: 920, margin: "0 auto", padding: "0 24px", display: "flex", gap: 4, overflowX: "auto" }}>
           {tabs.map((t) => {
             const on = t.href === activeHref;
             const isNotif = t.icon === "bell";
             return (
-              <Link key={t.href} href={t.href} style={{ display: "flex", alignItems: "center", gap: 7, padding: "11px 12px", flex: "none", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: on ? 600 : 500, color: on ? "var(--accent-ink)" : "var(--ink-500)", borderBottom: on ? "2px solid var(--accent-ink)" : "2px solid transparent" }}>
-                <I name={t.icon} size={17} /> {t.label}
+              <Link key={t.href} href={t.href} data-active={on ? "true" : undefined} style={{ display: "flex", alignItems: "center", gap: 7, padding: "11px 12px", flex: "none", whiteSpace: "nowrap", fontSize: 13.5, fontWeight: on ? 600 : 500, color: on ? "var(--accent-ink)" : "var(--ink-500)", borderBottom: on ? "2px solid var(--accent-ink)" : "2px solid transparent" }}>
+                <I name={t.icon} size={17} />
+                <span className="portal-tab-text">{t.label}</span>
+                <span className="portal-tab-short">{t.shortLabel ?? t.label}</span>
                 {isNotif && <CountPill count={unreadCount} />}
               </Link>
             );
